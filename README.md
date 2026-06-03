@@ -37,6 +37,11 @@ flutter analyze
 flutter test
 ```
 
+## Documentation
+
+- [Technical design](docs/technical_design.md)
+- [Project manual](docs/project_manual.md)
+
 ## Next Milestone
 
-Add local document persistence and file open/save support.
+Add file open/save support and a recent documents list.
