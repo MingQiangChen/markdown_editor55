@@ -9,6 +9,12 @@ A Flutter Markdown editor prototype for desktop and web.
 - Formatting toolbar for common Markdown inserts
 - Responsive layout: split editor/preview on wide screens, paged view on compact screens
 - Document word and character counts
+- Draft auto-save and restore
+
+Draft storage:
+
+- Windows/desktop: `%APPDATA%\QLawMarkdown\draft.md`
+- Web: browser `localStorage`
 
 ## Run
 

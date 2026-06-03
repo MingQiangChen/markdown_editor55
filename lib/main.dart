@@ -1,11 +1,31 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
-void main() {
-  runApp(const MarkdownEditorApp());
+import 'storage/document_store.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final documentStore = createDocumentStore();
+  final savedDraft = await documentStore.loadDraft();
+
+  runApp(
+    MarkdownEditorApp(
+      documentStore: documentStore,
+      initialMarkdown: savedDraft ?? _initialMarkdown,
+    ),
+  );
 }
 
 class MarkdownEditorApp extends StatelessWidget {
-  const MarkdownEditorApp({super.key});
+  const MarkdownEditorApp({
+    super.key,
+    required this.documentStore,
+    required this.initialMarkdown,
+  });
+
+  final DocumentStore documentStore;
+  final String initialMarkdown;
 
   @override
   Widget build(BuildContext context) {
@@ -26,13 +46,23 @@ class MarkdownEditorApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const EditorScreen(),
+      home: EditorScreen(
+        documentStore: documentStore,
+        initialMarkdown: initialMarkdown,
+      ),
     );
   }
 }
 
 class EditorScreen extends StatefulWidget {
-  const EditorScreen({super.key});
+  const EditorScreen({
+    super.key,
+    required this.documentStore,
+    required this.initialMarkdown,
+  });
+
+  final DocumentStore documentStore;
+  final String initialMarkdown;
 
   @override
   State<EditorScreen> createState() => _EditorScreenState();
@@ -41,20 +71,49 @@ class EditorScreen extends StatefulWidget {
 class _EditorScreenState extends State<EditorScreen> {
   late final TextEditingController _controller;
   final FocusNode _editorFocusNode = FocusNode();
+  Timer? _saveTimer;
   bool _showPreview = true;
+  String _saveStatus = 'Saved';
 
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(text: _initialMarkdown);
-    _controller.addListener(() => setState(() {}));
+    _controller = TextEditingController(text: widget.initialMarkdown);
+    _controller.addListener(_handleDocumentChanged);
   }
 
   @override
   void dispose() {
+    _saveTimer?.cancel();
+    _controller.removeListener(_handleDocumentChanged);
     _controller.dispose();
     _editorFocusNode.dispose();
     super.dispose();
+  }
+
+  void _handleDocumentChanged() {
+    setState(() => _saveStatus = 'Saving...');
+    _saveTimer?.cancel();
+    _saveTimer = Timer(const Duration(milliseconds: 500), () async {
+      try {
+        await widget.documentStore.saveDraft(_controller.text);
+        if (mounted) {
+          setState(() => _saveStatus = 'Saved');
+        }
+      } catch (_) {
+        if (mounted) {
+          setState(() => _saveStatus = 'Save failed');
+        }
+      }
+    });
+  }
+
+  void _newDocument() {
+    _controller.text = '# Untitled document\n\n';
+    _controller.selection = TextSelection.collapsed(
+      offset: _controller.text.length,
+    );
+    _editorFocusNode.requestFocus();
   }
 
   void _wrapSelection(String prefix, String suffix) {
@@ -115,6 +174,13 @@ class _EditorScreenState extends State<EditorScreen> {
         title: const Text('QLaw Markdown'),
         actions: [
           Tooltip(
+            message: 'New document',
+            child: IconButton(
+              icon: const Icon(Icons.note_add),
+              onPressed: _newDocument,
+            ),
+          ),
+          Tooltip(
             message: _showPreview ? 'Hide preview' : 'Show preview',
             child: IconButton(
               icon: Icon(
@@ -163,7 +229,11 @@ class _EditorScreenState extends State<EditorScreen> {
               },
             ),
           ),
-          StatusBar(stats: stats, previewEnabled: _showPreview),
+          StatusBar(
+            stats: stats,
+            previewEnabled: _showPreview,
+            saveStatus: _saveStatus,
+          ),
         ],
       ),
     );
@@ -455,7 +525,7 @@ class _ListItemBlock extends _MarkdownBlock {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(width: 20, child: Text('•')),
+        const SizedBox(width: 20, child: Text('-')),
         Expanded(
           child: Text(text, style: Theme.of(context).textTheme.bodyLarge),
         ),
@@ -502,10 +572,12 @@ class StatusBar extends StatelessWidget {
     super.key,
     required this.stats,
     required this.previewEnabled,
+    required this.saveStatus,
   });
 
   final DocumentStats stats;
   final bool previewEnabled;
+  final String saveStatus;
 
   @override
   Widget build(BuildContext context) {
@@ -521,6 +593,8 @@ class StatusBar extends StatelessWidget {
               const SizedBox(width: 16),
               Text('${stats.characters} characters'),
               const Spacer(),
+              Text(saveStatus),
+              const SizedBox(width: 16),
               Text(previewEnabled ? 'Edit + preview' : 'Edit only'),
             ],
           ),
