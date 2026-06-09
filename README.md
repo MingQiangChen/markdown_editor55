@@ -4,23 +4,33 @@ A Flutter Markdown editor for desktop and web.
 
 ## Features
 
-- Plain-text Markdown editing with formatting toolbar
-- Live preview with full GitHub-Flavored Markdown (tables, images, task lists, nested lists)
-- Syntax highlighting in code blocks
-- File open, save, and save-as for `.md` files
-- Recent documents list (max 10)
-- Draft auto-save and restore
-- Export to styled HTML and PDF
-- External file change detection with conflict dialog
-- Responsive layout: split editor/preview on wide screens (≥760px), paged on compact
-- Document word and character counts
-- Dark and light themes
+* Plain-text Markdown editing with formatting toolbar
+
+* Live preview with full GitHub-Flavored Markdown (tables, images, task lists, nested lists)
+
+* Syntax highlighting in code blocks
+
+* File open, save, and save-as for `.md` files
+
+* Recent documents list (max 10)
+
+* Draft auto-save and restore
+
+* Export to styled HTML and PDF
+
+* External file change detection with conflict dialog
+
+* Responsive layout: split editor/preview on wide screens (≥760px), paged on compact
+
+* Document word and character counts
+
+* Dark and light themes
 
 ## Storage
 
-| Data | Desktop (Windows) | Web |
-|------|-------------------|-----|
-| Draft | `%APPDATA%\QLawMarkdown\draft.md` | `localStorage` |
+| Data         | Desktop (Windows)                    | Web            |
+| ------------ | ------------------------------------ | -------------- |
+| Draft        | `%APPDATA%\QLawMarkdown\draft.md`    | `localStorage` |
 | Recent files | `%APPDATA%\QLawMarkdown\recent.json` | `localStorage` |
 
 ## Run
@@ -52,8 +62,9 @@ flutter test
 
 ## Documentation
 
-- [Technical design](docs/technical_design.md)
-- [Project manual](docs/project_manual.md)
+* [Technical design](docs/technical_design.md)
+
+* [Project manual](docs/project_manual.md)
 
 ## Architecture
 
@@ -71,9 +82,10 @@ Cross-platform code uses conditional exports (`dart.library.io` / `dart.library.
 
 ## Dependencies
 
-| Package | Purpose |
-|---------|---------|
-| `file_picker` | Native file dialogs (desktop) |
-| `flutter_markdown_plus` | Markdown preview with GFM |
-| `markdown` | Markdown → HTML for export |
-| `pdf` + `printing` | PDF generation and sharing |
+| Package                 | Purpose                       |
+| ----------------------- | ----------------------------- |
+| `file_picker`           | Native file dialogs (desktop) |
+| `flutter_markdown_plus` | Markdown preview with GFM     |
+| `markdown`              | Markdown → HTML for export    |
+| `pdf` + `printing`      | PDF generation and sharing    |
+

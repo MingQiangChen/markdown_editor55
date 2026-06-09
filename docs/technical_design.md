@@ -11,7 +11,7 @@ QLaw Markdown is a Flutter desktop/web Markdown editor. It supports:
 - Auto-save drafts locally
 - Recent documents list
 - Export to HTML and PDF
-- External file change detection with conflict dialog
+- Save always opens Save As dialog for explicit filename confirmation
 - Responsive layout (side-by-side on wide screens, paged on compact)
 - Dark and light themes
 - Cross-platform: Windows desktop and Web from one codebase
@@ -106,9 +106,8 @@ main()
 Central stateful widget managing:
 - `TextEditingController` lifecycle
 - Auto-save debounce (500 ms) via `DocumentStore`
-- File open (`FileService.openFile`) and save (`FileService.saveFile` / `saveFileAs`)
+- File open (`FileService.openFile`) and save as (`FileService.saveFileAs`)
 - Recent documents list (`RecentStore`)
-- External change detection before save with conflict dialog
 - HTML and PDF export
 - Preview toggle and responsive layout
 
@@ -237,15 +236,9 @@ Save states shown in the status bar:
 
 This design avoids writing to disk/localStorage on every keystroke while still keeping drafts current.
 
-## Conflict Detection
+## Save Behavior
 
-When a file is opened, its `lastModified` timestamp is stored. Before saving, the current modification time is checked:
-
-1. If the file was modified externally since opening → show conflict dialog
-2. Dialog options: **Cancel save**, **Reload from disk**, **Overwrite**
-3. After a successful save, the stored timestamp is updated to now
-
-On web, `lastModified` is always null, so conflict detection is gracefully skipped.
+The **Save** button always opens a **Save As** dialog so the user can confirm or change the filename before writing. This is a deliberate UX choice — the editor never silently overwrites a file.
 
 ## Export (`lib/export/`)
 
@@ -329,4 +322,4 @@ flutter test
 4. ✅ Replace preview parser with `flutter_markdown_plus`
 5. ✅ Syntax highlighting for code blocks
 6. ✅ Export to HTML and PDF (`lib/export/`)
-7. ✅ External file change detection with conflict dialog
+7. ✅ Save As dialog on every save (explicit filename confirmation)

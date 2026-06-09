@@ -101,11 +101,9 @@ Click the folder icon or use the recent files menu. Only `.md` files are shown i
 
 ### Save a file
 
-If a file was previously opened or saved, **Save** writes directly to the same path. Otherwise, it opens a **Save As** dialog.
+Click **Save** (💾) to open the Save As dialog. Choose a location and enter a filename, then confirm. The editor always asks for a filename — it never silently overwrites a file.
 
-### Save As
-
-Opens a file save dialog. On desktop, choose a location and filename. On web, the file downloads automatically.
+On web, the file downloads immediately.
 
 ### Recent files
 
@@ -113,14 +111,6 @@ Click the history icon to see up to 10 recently opened files. Click any item to 
 
 - **Desktop**: Files are reopened directly from disk.
 - **Web**: File content is cached in browser storage so files can be reopened without re-uploading.
-
-### Conflict detection
-
-If you open a file and it is modified by another application before you save, a dialog will appear with three options:
-
-- **Cancel save** — don't save, keep editing
-- **Reload from disk** — load the external version into the editor
-- **Overwrite** — save your version, replacing the external changes
 
 ## Export
 
