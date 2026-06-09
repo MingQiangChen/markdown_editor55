@@ -62,9 +62,9 @@ flutter test
 
 ## Documentation
 
-* [Technical design](docs/technical_design.md)
-
-* [Project manual](docs/project_manual.md)
+* [Setup guide](docs/setup_guide.md) — 安装与启动步骤
+* [Project manual](docs/project_manual.md) — 使用说明
+* [Technical design](docs/technical_design.md) — 技术设计
 
 ## Architecture
 
