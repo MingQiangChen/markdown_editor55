@@ -76,13 +76,20 @@ class _WebFileService implements FileService {
 
   @override
   Future<String?> saveFileAs(String content) async {
+    final defaultName = _lastSavedName ?? 'untitled.md';
+    // ignore: avoid_dynamic
+    final fileName =
+        (html.window as dynamic).prompt('Save as', defaultName) as String?;
+    if (fileName == null || fileName.isEmpty) return null;
+
+    _lastSavedName = fileName;
     final blob = html.Blob([content]);
     final url = html.Url.createObjectUrlFromBlob(blob);
     html.AnchorElement(href: url)
-      ..setAttribute('download', _lastSavedName ?? 'untitled.md')
+      ..setAttribute('download', fileName)
       ..click();
     html.Url.revokeObjectUrl(url);
-    return _lastSavedName ?? 'untitled.md';
+    return fileName;
   }
 
   @override
