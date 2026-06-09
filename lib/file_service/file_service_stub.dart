@@ -7,6 +7,9 @@ class _StubFileService implements FileService {
   Future<FileOpenResult?> openFile() async => null;
 
   @override
+  Future<FileOpenResult?> openFilePath(String path) async => null;
+
+  @override
   Future<String?> saveFileAs(String content) async => null;
 
   @override

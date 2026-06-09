@@ -4,18 +4,21 @@ import 'package:flutter/material.dart';
 
 import 'editor/editor_screen.dart';
 import 'file_service/file_service.dart';
+import 'recent_store/recent_store.dart';
 import 'storage/document_store.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final documentStore = createDocumentStore();
   final fileService = createFileService();
+  final recentStore = createRecentStore();
   final savedDraft = await _loadDraftSafely(documentStore);
 
   runApp(
     MarkdownEditorApp(
       documentStore: documentStore,
       fileService: fileService,
+      recentStore: recentStore,
       initialMarkdown: savedDraft ?? _initialMarkdown,
     ),
   );
@@ -34,11 +37,13 @@ class MarkdownEditorApp extends StatelessWidget {
     super.key,
     required this.documentStore,
     required this.fileService,
+    required this.recentStore,
     required this.initialMarkdown,
   });
 
   final DocumentStore documentStore;
   final FileService fileService;
+  final RecentStore recentStore;
   final String initialMarkdown;
 
   @override
@@ -63,6 +68,7 @@ class MarkdownEditorApp extends StatelessWidget {
       home: EditorScreen(
         documentStore: documentStore,
         fileService: fileService,
+        recentStore: recentStore,
         initialMarkdown: initialMarkdown,
       ),
     );

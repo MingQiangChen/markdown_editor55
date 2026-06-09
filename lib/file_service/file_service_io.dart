@@ -31,6 +31,19 @@ class _IoFileService implements FileService {
   }
 
   @override
+  Future<FileOpenResult?> openFilePath(String path) async {
+    final file = File(path);
+    if (!await file.exists()) return null;
+
+    final content = await file.readAsString();
+    return FileOpenResult(
+      content: content,
+      path: path,
+      name: path.split(Platform.pathSeparator).last,
+    );
+  }
+
+  @override
   Future<String?> saveFileAs(String content) async {
     final path = await FilePicker.platform.saveFile(
       type: FileType.custom,

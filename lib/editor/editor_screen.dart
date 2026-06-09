@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../file_service/file_service.dart';
+import '../recent_store/recent_store.dart';
 import '../storage/document_store.dart';
 import 'document_stats.dart';
 import 'editor_toolbar.dart';
@@ -14,11 +15,13 @@ class EditorScreen extends StatefulWidget {
     super.key,
     required this.documentStore,
     required this.fileService,
+    required this.recentStore,
     required this.initialMarkdown,
   });
 
   final DocumentStore documentStore;
   final FileService fileService;
+  final RecentStore recentStore;
   final String initialMarkdown;
 
   @override
@@ -33,12 +36,21 @@ class _EditorScreenState extends State<EditorScreen> {
   String _saveStatus = 'Saved';
   String? _currentFilePath;
   String? _currentFileName;
+  List<RecentDocument> _recentDocs = [];
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.initialMarkdown);
     _controller.addListener(_handleDocumentChanged);
+    _loadRecentDocs();
+  }
+
+  Future<void> _loadRecentDocs() async {
+    final docs = await widget.recentStore.loadAll();
+    if (mounted) {
+      setState(() => _recentDocs = docs);
+    }
   }
 
   @override
@@ -67,6 +79,18 @@ class _EditorScreenState extends State<EditorScreen> {
     });
   }
 
+  Future<void> _addToRecent(String path, String name) async {
+    final doc = RecentDocument(
+      path: path,
+      name: name,
+      // On web, cache content so recent files can be reopened without filesystem access.
+      content: path == name ? _controller.text : null,
+      lastOpened: DateTime.now(),
+    );
+    await widget.recentStore.add(doc);
+    await _loadRecentDocs();
+  }
+
   Future<void> _openFile() async {
     final result = await widget.fileService.openFile();
     if (result == null || !mounted) return;
@@ -81,6 +105,26 @@ class _EditorScreenState extends State<EditorScreen> {
       offset: _controller.text.length,
     );
     _editorFocusNode.requestFocus();
+    await _addToRecent(result.path, result.name);
+  }
+
+  Future<void> _openRecent(RecentDocument doc) async {
+    // Try to read from filesystem (desktop). If not available (web), use cached content.
+    final result = await widget.fileService.openFilePath(doc.path);
+    final content = result?.content ?? doc.content;
+    if (content == null || !mounted) return;
+
+    setState(() {
+      _controller.text = content;
+      _currentFilePath = doc.path;
+      _currentFileName = doc.name;
+      _saveStatus = 'Saved';
+    });
+    _controller.selection = TextSelection.collapsed(
+      offset: _controller.text.length,
+    );
+    _editorFocusNode.requestFocus();
+    await _addToRecent(doc.path, doc.name); // bumps timestamp to top.
   }
 
   Future<void> _saveFile() async {
@@ -98,11 +142,13 @@ class _EditorScreenState extends State<EditorScreen> {
     } else {
       final path = await widget.fileService.saveFileAs(_controller.text);
       if (path != null && mounted) {
+        final name = path.split('/').last.split('\\').last;
         setState(() {
           _currentFilePath = path;
-          _currentFileName = path.split('/').last.split('\\').last;
+          _currentFileName = name;
           _saveStatus = 'Saved';
         });
+        await _addToRecent(path, name);
       }
     }
   }
@@ -186,6 +232,38 @@ class _EditorScreenState extends State<EditorScreen> {
             child: IconButton(
               icon: const Icon(Icons.save),
               onPressed: _saveFile,
+            ),
+          ),
+          Tooltip(
+            message: 'Recent files',
+            child: PopupMenuButton<RecentDocument>(
+              icon: const Icon(Icons.history),
+              enabled: _recentDocs.isNotEmpty,
+              onSelected: _openRecent,
+              itemBuilder:
+                  (context) =>
+                      _recentDocs.map((doc) {
+                        return PopupMenuItem<RecentDocument>(
+                          value: doc,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                doc.name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Text(
+                                doc.path,
+                                style: Theme.of(context).textTheme.bodySmall,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
             ),
           ),
           Tooltip(

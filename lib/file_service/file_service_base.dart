@@ -12,6 +12,7 @@ class FileOpenResult {
 
 abstract class FileService {
   Future<FileOpenResult?> openFile();
+  Future<FileOpenResult?> openFilePath(String path);
   Future<String?> saveFileAs(String content);
   Future<void> saveFile(String content, String path);
 }

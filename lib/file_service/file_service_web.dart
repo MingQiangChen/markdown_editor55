@@ -72,6 +72,9 @@ class _WebFileService implements FileService {
   }
 
   @override
+  Future<FileOpenResult?> openFilePath(String path) async => null;
+
+  @override
   Future<String?> saveFileAs(String content) async {
     final blob = html.Blob([content]);
     final url = html.Url.createObjectUrlFromBlob(blob);

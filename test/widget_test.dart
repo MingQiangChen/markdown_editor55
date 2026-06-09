@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:markdown_editor/file_service/file_service.dart';
 import 'package:markdown_editor/main.dart';
+import 'package:markdown_editor/recent_store/recent_store.dart';
 import 'package:markdown_editor/storage/document_store.dart';
 
 void main() {
@@ -13,6 +14,7 @@ void main() {
       MarkdownEditorApp(
         documentStore: _FakeDocumentStore(),
         fileService: _FakeFileService(),
+        recentStore: _FakeRecentStore(),
         initialMarkdown:
             '# QLaw Markdown\n\nStart writing on the left. The preview updates as you type.',
       ),
@@ -26,6 +28,7 @@ void main() {
     expect(find.byIcon(Icons.format_bold), findsOneWidget);
     expect(find.byIcon(Icons.folder_open), findsOneWidget);
     expect(find.byIcon(Icons.save), findsOneWidget);
+    expect(find.byIcon(Icons.history), findsOneWidget);
     expect(find.text('Edit + preview'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.visibility));
@@ -53,8 +56,22 @@ class _FakeFileService implements FileService {
   Future<FileOpenResult?> openFile() async => null;
 
   @override
+  Future<FileOpenResult?> openFilePath(String path) async => null;
+
+  @override
   Future<String?> saveFileAs(String content) async => null;
 
   @override
   Future<void> saveFile(String content, String path) async {}
+}
+
+class _FakeRecentStore implements RecentStore {
+  @override
+  Future<List<RecentDocument>> loadAll() async => [];
+
+  @override
+  Future<void> add(RecentDocument doc) async {}
+
+  @override
+  Future<void> remove(String path) async {}
 }
