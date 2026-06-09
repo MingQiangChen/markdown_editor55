@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 
+import 'markdown_syntax_highlighter.dart';
+
 class MarkdownPreview extends StatelessWidget {
   const MarkdownPreview({super.key, required this.data});
 
@@ -38,6 +40,7 @@ class MarkdownPreview extends StatelessWidget {
         data: data.isEmpty ? 'Preview will appear here.' : data,
         selectable: true,
         styleSheet: styleSheet,
+        syntaxHighlighter: MarkdownSyntaxHighlighter(colorScheme: colorScheme),
         padding: const EdgeInsets.all(22),
       ),
     );
