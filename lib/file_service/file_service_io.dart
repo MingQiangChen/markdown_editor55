@@ -11,7 +11,7 @@ class _IoFileService implements FileService {
   Future<FileOpenResult?> openFile() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['md', 'txt', 'markdown'],
+      allowedExtensions: ['md'],
     );
     if (result == null || result.files.isEmpty) return null;
 

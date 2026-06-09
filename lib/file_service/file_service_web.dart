@@ -12,8 +12,7 @@ class _WebFileService implements FileService {
 
   @override
   Future<FileOpenResult?> openFile() async {
-    final input =
-        html.FileUploadInputElement()..accept = '.md,.txt,.markdown,text/plain';
+    final input = html.FileUploadInputElement()..accept = '.md';
     input.click();
 
     final completer = Completer<FileOpenResult?>();
