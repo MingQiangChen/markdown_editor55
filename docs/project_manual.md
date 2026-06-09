@@ -2,13 +2,20 @@
 
 ## What This Project Does
 
-QLaw Markdown is a local-first Markdown editor prototype. You can write Markdown, preview the result, and keep a draft automatically saved between sessions.
+QLaw Markdown is a local-first Markdown editor. You can write Markdown, preview the result, open and save `.md` files, and export to HTML or PDF.
 
-Current best use:
+Key features:
 
-- quick Markdown drafting
-- testing the app layout and editing workflow
-- serving as the base for a fuller cross-platform Markdown editor
+- Markdown editing with formatting toolbar
+- Live preview with full GitHub-Flavored Markdown support
+- Syntax highlighting in code blocks
+- Open, save, and save-as for `.md` files
+- Recent documents list
+- Auto-save drafts between sessions
+- Export to HTML and PDF
+- External file change detection
+- Responsive layout (side-by-side or paged)
+- Dark and light themes
 
 ## Open The Project
 
@@ -46,58 +53,110 @@ flutter run -d windows
 
 ## Use The Editor
 
-The main screen has:
+### Main screen
 
-- top app bar
-- Markdown toolbar
-- editor pane
-- preview pane
-- status bar
+On wide screens (≥760px), the editor and preview are side by side. On compact screens, they are shown as swipeable pages when preview is enabled.
 
-On wide screens, editor and preview are side by side.
+### Toolbar buttons
 
-On compact screens, editor and preview are shown as swipeable pages when preview is enabled.
+| Button | Action |
+|--------|--------|
+| **Heading** | Inserts `## ` at the start of the current line |
+| **Bold** | Wraps selection with `**` |
+| **Italic** | Wraps selection with `*` |
+| **Inline code** | Wraps selection with `` ` `` |
+| **Link** | Wraps selection with `[` and `](https://example.com)` |
+| **Quote** | Inserts `> ` at start of line |
+| **List** | Inserts `- ` at start of line |
+| **Code block** | Inserts a fenced code block |
 
-## Toolbar Buttons
+Most actions use the current text selection. If nothing is selected, Markdown markers are inserted at the cursor position.
 
-Available actions:
+### App bar buttons
+
+| Icon | Action |
+|------|--------|
+| 📂 Folder open | Open a `.md` file |
+| 💾 Save | Save current file (or Save As if new) |
+| 📥 Download | Export menu: HTML or PDF |
+| 🕐 History | Recent files list (click to reopen) |
+| 📝 Note add | Start a new document |
+| 👁️ Eye | Toggle preview visibility |
+
+### Status bar
+
+Shows:
 
 ```text
-Heading
-Bold
-Italic
-Inline code
-Link
-Quote
-List
-Code block
+filename.md · 150 words · 1200 characters · Saved · Edit + preview
 ```
 
-Most actions use the current text selection. If no text is selected, Markdown markers are inserted at the cursor.
+When no file is open, the filename section is hidden.
 
-## Preview Toggle
+## File Operations
+
+### Open a file
+
+Click the folder icon or use the recent files menu. Only `.md` files are shown in the file dialog.
+
+### Save a file
+
+If a file was previously opened or saved, **Save** writes directly to the same path. Otherwise, it opens a **Save As** dialog.
+
+### Save As
+
+Opens a file save dialog. On desktop, choose a location and filename. On web, the file downloads automatically.
+
+### Recent files
+
+Click the history icon to see up to 10 recently opened files. Click any item to reopen it.
+
+- **Desktop**: Files are reopened directly from disk.
+- **Web**: File content is cached in browser storage so files can be reopened without re-uploading.
+
+### Conflict detection
+
+If you open a file and it is modified by another application before you save, a dialog will appear with three options:
+
+- **Cancel save** — don't save, keep editing
+- **Reload from disk** — load the external version into the editor
+- **Overwrite** — save your version, replacing the external changes
+
+## Export
+
+### Export as HTML
+
+Click the download icon → **Export as HTML**. This saves a complete HTML page with embedded CSS styling.
+
+### Export as PDF
+
+Click the download icon → **Export as PDF**. This opens the platform share/save dialog for the PDF.
+
+## Preview
+
+The preview pane renders Markdown using `flutter_markdown_plus` with full GitHub-Flavored Markdown support:
+
+- Headings (h1–h6)
+- Bold, italic, inline code
+- Ordered and unordered lists (including nested)
+- Task lists (`- [ ]` and `- [x]`)
+- Code blocks with syntax highlighting
+- Blockquotes
+- Tables
+- Images
+- Links
+- Dividers
+
+### Preview toggle
 
 Use the eye icon in the app bar:
 
-- eye: preview is visible
-- crossed eye: editor-only mode
-
-The status bar shows either:
-
-```text
-Edit + preview
-Edit only
-```
-
-## New Document
-
-Use the note-add icon in the app bar to start a fresh draft.
-
-This replaces the current editor content and auto-saves it shortly after the change.
+- 👁️ Eye: preview is visible (default)
+- 🚫 Crossed eye: editor-only mode
 
 ## Auto-Save
 
-The app auto-saves drafts while you type.
+The app auto-saves drafts while you type (500 ms debounce).
 
 Status bar values:
 
@@ -113,6 +172,15 @@ Draft locations:
 Windows: %APPDATA%\QLawMarkdown\draft.md
 Web: browser localStorage key qlaw_markdown.draft
 ```
+
+## Recent Files Storage
+
+```text
+Windows: %APPDATA%\QLawMarkdown\recent.json
+Web: browser localStorage key qlaw_markdown.recent
+```
+
+Maximum 10 entries, ordered by most recently opened.
 
 ## Verify The Project
 
@@ -184,28 +252,21 @@ Configured remote:
 https://github.com/MingQiangChen/markdown_editor55.git
 ```
 
-At the time this manual was written, GitHub push from this machine failed because the machine could not connect to `github.com:443`.
-
 ## Known Limitations
 
-The current MVP does not yet support:
+The current version does not yet support:
 
-- opening arbitrary `.md` files
-- saving as a selected file path
-- multiple documents
-- tables
-- images
-- ordered lists
-- nested lists
-- syntax highlighting
-- cloud sync
+- Editor-side syntax highlighting (plain text only)
+- Cloud sync
+- Multiple documents open simultaneously (tabs)
+- Drag-and-drop file opening
+- Custom export templates
 
-## Recommended Next Work
+## Next Steps (Ideas)
 
-1. Add file open/save.
-2. Add recent documents.
-3. Replace the simple preview parser with a full Markdown renderer.
-4. Split `main.dart` into editor-specific widgets.
-5. Add export to HTML/PDF.
-6. Add local document library.
-7. Add account and sync features.
+- Editor syntax highlighting (e.g., CodeMirror or re_editor)
+- Tabbed multi-document editing
+- Drag-and-drop file opening
+- Cloud sync with conflict resolution
+- Custom CSS export templates
+- Mobile/touch platform support

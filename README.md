@@ -1,20 +1,27 @@
 # QLaw Markdown
 
-A Flutter Markdown editor prototype for desktop and web.
+A Flutter Markdown editor for desktop and web.
 
-## Current MVP
+## Features
 
-- Plain-text Markdown editing
-- Live preview pane with basic headings, paragraphs, lists, quotes, dividers, and code blocks
-- Formatting toolbar for common Markdown inserts
-- Responsive layout: split editor/preview on wide screens, paged view on compact screens
-- Document word and character counts
+- Plain-text Markdown editing with formatting toolbar
+- Live preview with full GitHub-Flavored Markdown (tables, images, task lists, nested lists)
+- Syntax highlighting in code blocks
+- File open, save, and save-as for `.md` files
+- Recent documents list (max 10)
 - Draft auto-save and restore
+- Export to styled HTML and PDF
+- External file change detection with conflict dialog
+- Responsive layout: split editor/preview on wide screens (≥760px), paged on compact
+- Document word and character counts
+- Dark and light themes
 
-Draft storage:
+## Storage
 
-- Windows/desktop: `%APPDATA%\QLawMarkdown\draft.md`
-- Web: browser `localStorage`
+| Data | Desktop (Windows) | Web |
+|------|-------------------|-----|
+| Draft | `%APPDATA%\QLawMarkdown\draft.md` | `localStorage` |
+| Recent files | `%APPDATA%\QLawMarkdown\recent.json` | `localStorage` |
 
 ## Run
 
@@ -27,6 +34,12 @@ Open:
 
 ```text
 http://127.0.0.1:5173
+```
+
+For Windows desktop:
+
+```bash
+flutter run -d windows
 ```
 
 ## Verify
@@ -42,6 +55,25 @@ flutter test
 - [Technical design](docs/technical_design.md)
 - [Project manual](docs/project_manual.md)
 
-## Next Milestone
+## Architecture
 
-Add file open/save support and a recent documents list.
+```
+lib/
+  main.dart                        App entry point
+  editor/                          Editor widgets (screen, toolbar, preview, stats)
+  file_service/                    File open/save/export (IO + Web)
+  recent_store/                    Recent documents persistence
+  storage/                         Draft auto-save persistence
+  export/                          HTML and PDF export service
+```
+
+Cross-platform code uses conditional exports (`dart.library.io` / `dart.library.html`).
+
+## Dependencies
+
+| Package | Purpose |
+|---------|---------|
+| `file_picker` | Native file dialogs (desktop) |
+| `flutter_markdown_plus` | Markdown preview with GFM |
+| `markdown` | Markdown → HTML for export |
+| `pdf` + `printing` | PDF generation and sharing |
