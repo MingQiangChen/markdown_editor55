@@ -7,7 +7,7 @@ import 'storage/document_store.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final documentStore = createDocumentStore();
-  final savedDraft = await documentStore.loadDraft();
+  final savedDraft = await _loadDraftSafely(documentStore);
 
   runApp(
     MarkdownEditorApp(
@@ -15,6 +15,14 @@ Future<void> main() async {
       initialMarkdown: savedDraft ?? _initialMarkdown,
     ),
   );
+}
+
+Future<String?> _loadDraftSafely(DocumentStore documentStore) async {
+  try {
+    return await documentStore.loadDraft();
+  } catch (_) {
+    return null;
+  }
 }
 
 class MarkdownEditorApp extends StatelessWidget {

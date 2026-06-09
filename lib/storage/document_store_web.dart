@@ -10,10 +10,20 @@ class _WebDocumentStore implements DocumentStore {
   static const _draftKey = 'qlaw_markdown.draft';
 
   @override
-  Future<String?> loadDraft() async => html.window.localStorage[_draftKey];
+  Future<String?> loadDraft() async {
+    try {
+      return html.window.localStorage[_draftKey];
+    } catch (_) {
+      return null;
+    }
+  }
 
   @override
   Future<void> saveDraft(String content) async {
-    html.window.localStorage[_draftKey] = content;
+    try {
+      html.window.localStorage[_draftKey] = content;
+    } catch (_) {
+      return;
+    }
   }
 }
