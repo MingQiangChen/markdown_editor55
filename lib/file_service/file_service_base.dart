@@ -3,11 +3,13 @@ class FileOpenResult {
     required this.content,
     required this.path,
     required this.name,
+    this.lastModified,
   });
 
   final String content;
   final String path;
   final String name;
+  final DateTime? lastModified;
 }
 
 abstract class FileService {
@@ -20,4 +22,5 @@ abstract class FileService {
     List<String> allowedExtensions,
   );
   Future<void> saveFile(String content, String path);
+  Future<DateTime?> getLastModified(String path);
 }

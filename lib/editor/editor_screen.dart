@@ -11,6 +11,8 @@ import 'editor_toolbar.dart';
 import 'markdown_preview.dart';
 import 'markdown_text_editor.dart';
 
+enum _ConflictAction { overwrite, reload, cancel }
+
 class EditorScreen extends StatefulWidget {
   const EditorScreen({
     super.key,
@@ -37,6 +39,7 @@ class _EditorScreenState extends State<EditorScreen> {
   String _saveStatus = 'Saved';
   String? _currentFilePath;
   String? _currentFileName;
+  DateTime? _fileLastModified;
   List<RecentDocument> _recentDocs = [];
 
   @override
@@ -100,6 +103,7 @@ class _EditorScreenState extends State<EditorScreen> {
       _controller.text = result.content;
       _currentFilePath = result.path;
       _currentFileName = result.name;
+      _fileLastModified = result.lastModified;
       _saveStatus = 'Saved';
     });
     _controller.selection = TextSelection.collapsed(
@@ -119,6 +123,7 @@ class _EditorScreenState extends State<EditorScreen> {
       _controller.text = content;
       _currentFilePath = doc.path;
       _currentFileName = doc.name;
+      _fileLastModified = result?.lastModified;
       _saveStatus = 'Saved';
     });
     _controller.selection = TextSelection.collapsed(
@@ -130,8 +135,36 @@ class _EditorScreenState extends State<EditorScreen> {
 
   Future<void> _saveFile() async {
     if (_currentFilePath != null) {
+      // Check for external modifications before overwriting.
+      final currentModified = await widget.fileService.getLastModified(
+        _currentFilePath!,
+      );
+      if (_fileLastModified != null &&
+          currentModified != null &&
+          currentModified.isAfter(_fileLastModified!)) {
+        if (!mounted) return;
+        final action = await _showConflictDialog();
+        if (action == _ConflictAction.cancel) return;
+        if (action == _ConflictAction.reload) {
+          final result = await widget.fileService.openFilePath(
+            _currentFilePath!,
+          );
+          if (result != null && mounted) {
+            setState(() {
+              _controller.text = result.content;
+              _fileLastModified = result.lastModified;
+              _saveStatus = 'Saved';
+            });
+          }
+          return;
+        }
+        // Overwrite: proceed to save.
+      }
       try {
         await widget.fileService.saveFile(_controller.text, _currentFilePath!);
+        if (_fileLastModified != null && _currentFilePath != null) {
+          _fileLastModified = DateTime.now();
+        }
         if (mounted) {
           setState(() => _saveStatus = 'Saved');
         }
@@ -186,7 +219,38 @@ class _EditorScreenState extends State<EditorScreen> {
     );
     _currentFilePath = null;
     _currentFileName = null;
+    _fileLastModified = null;
     _editorFocusNode.requestFocus();
+  }
+
+  Future<_ConflictAction> _showConflictDialog() async {
+    final result = await showDialog<_ConflictAction>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('File modified externally'),
+            content: const Text(
+              'The file has been modified by another application since it was opened. '
+              'What would you like to do?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, _ConflictAction.cancel),
+                child: const Text('Cancel save'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, _ConflictAction.reload),
+                child: const Text('Reload from disk'),
+              ),
+              FilledButton(
+                onPressed:
+                    () => Navigator.pop(context, _ConflictAction.overwrite),
+                child: const Text('Overwrite'),
+              ),
+            ],
+          ),
+    );
+    return result ?? _ConflictAction.cancel;
   }
 
   void _wrapSelection(String prefix, String suffix) {

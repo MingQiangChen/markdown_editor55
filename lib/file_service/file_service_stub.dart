@@ -21,4 +21,7 @@ class _StubFileService implements FileService {
     String fileName,
     List<String> allowedExtensions,
   ) async => null;
+
+  @override
+  Future<DateTime?> getLastModified(String path) async => null;
 }

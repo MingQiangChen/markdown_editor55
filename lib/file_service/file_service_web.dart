@@ -110,4 +110,7 @@ class _WebFileService implements FileService {
     html.Url.revokeObjectUrl(url);
     return fileName;
   }
+
+  @override
+  Future<DateTime?> getLastModified(String path) async => null;
 }

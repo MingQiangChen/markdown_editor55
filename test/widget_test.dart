@@ -70,6 +70,9 @@ class _FakeFileService implements FileService {
     String fileName,
     List<String> allowedExtensions,
   ) async => null;
+
+  @override
+  Future<DateTime?> getLastModified(String path) async => null;
 }
 
 class _FakeRecentStore implements RecentStore {

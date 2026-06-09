@@ -27,6 +27,7 @@ class _IoFileService implements FileService {
       content: content,
       path: path,
       name: platformFile.name,
+      lastModified: await file.lastModified(),
     );
   }
 
@@ -40,6 +41,7 @@ class _IoFileService implements FileService {
       content: content,
       path: path,
       name: path.split(Platform.pathSeparator).last,
+      lastModified: await file.lastModified(),
     );
   }
 
@@ -79,5 +81,12 @@ class _IoFileService implements FileService {
     final file = File(path);
     await file.writeAsString(content);
     return path;
+  }
+
+  @override
+  Future<DateTime?> getLastModified(String path) async {
+    final file = File(path);
+    if (!await file.exists()) return null;
+    return await file.lastModified();
   }
 }
