@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../export/export_service.dart';
 import '../file_service/file_service.dart';
 import '../recent_store/recent_store.dart';
 import '../storage/document_store.dart';
@@ -153,6 +154,31 @@ class _EditorScreenState extends State<EditorScreen> {
     }
   }
 
+  Future<void> _exportHtml() async {
+    final html = markdownToHtmlPage(_controller.text, title: _currentFileName);
+    final defaultName = (_currentFileName ?? 'document').replaceAll(
+      '.md',
+      '.html',
+    );
+    await widget.fileService.exportFile(html, defaultName, ['html']);
+    if (mounted) {
+      setState(() => _saveStatus = 'Saved');
+    }
+  }
+
+  Future<void> _exportPdf() async {
+    try {
+      await shareAsPdf(
+        _controller.text,
+        filename: _currentFileName ?? 'document.md',
+      );
+    } catch (_) {
+      if (mounted) {
+        setState(() => _saveStatus = 'Export failed');
+      }
+    }
+  }
+
   void _newDocument() {
     _controller.text = '# Untitled document\n\n';
     _controller.selection = TextSelection.collapsed(
@@ -232,6 +258,30 @@ class _EditorScreenState extends State<EditorScreen> {
             child: IconButton(
               icon: const Icon(Icons.save),
               onPressed: _saveFile,
+            ),
+          ),
+          Tooltip(
+            message: 'Export',
+            child: PopupMenuButton<String>(
+              icon: const Icon(Icons.file_download),
+              onSelected: (value) {
+                if (value == 'html') {
+                  _exportHtml();
+                } else {
+                  _exportPdf();
+                }
+              },
+              itemBuilder:
+                  (context) => const [
+                    PopupMenuItem<String>(
+                      value: 'html',
+                      child: Text('Export as HTML'),
+                    ),
+                    PopupMenuItem<String>(
+                      value: 'pdf',
+                      child: Text('Export as PDF'),
+                    ),
+                  ],
             ),
           ),
           Tooltip(

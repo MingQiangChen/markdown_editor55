@@ -62,4 +62,22 @@ class _IoFileService implements FileService {
     final file = File(path);
     await file.writeAsString(content);
   }
+
+  @override
+  Future<String?> exportFile(
+    String content,
+    String fileName,
+    List<String> allowedExtensions,
+  ) async {
+    final path = await FilePicker.platform.saveFile(
+      type: FileType.custom,
+      allowedExtensions: allowedExtensions,
+      fileName: fileName,
+    );
+    if (path == null) return null;
+
+    final file = File(path);
+    await file.writeAsString(content);
+    return path;
+  }
 }

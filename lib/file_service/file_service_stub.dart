@@ -14,4 +14,11 @@ class _StubFileService implements FileService {
 
   @override
   Future<void> saveFile(String content, String path) async {}
+
+  @override
+  Future<String?> exportFile(
+    String content,
+    String fileName,
+    List<String> allowedExtensions,
+  ) async => null;
 }

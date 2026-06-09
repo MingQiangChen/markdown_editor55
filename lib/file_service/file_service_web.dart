@@ -95,4 +95,19 @@ class _WebFileService implements FileService {
       ..click();
     html.Url.revokeObjectUrl(url);
   }
+
+  @override
+  Future<String?> exportFile(
+    String content,
+    String fileName,
+    List<String> allowedExtensions,
+  ) async {
+    final blob = html.Blob([content]);
+    final url = html.Url.createObjectUrlFromBlob(blob);
+    html.AnchorElement(href: url)
+      ..setAttribute('download', fileName)
+      ..click();
+    html.Url.revokeObjectUrl(url);
+    return fileName;
+  }
 }
