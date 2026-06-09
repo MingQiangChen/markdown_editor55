@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../file_service/file_service.dart';
 import '../storage/document_store.dart';
 import 'document_stats.dart';
 import 'editor_toolbar.dart';
@@ -12,10 +13,12 @@ class EditorScreen extends StatefulWidget {
   const EditorScreen({
     super.key,
     required this.documentStore,
+    required this.fileService,
     required this.initialMarkdown,
   });
 
   final DocumentStore documentStore;
+  final FileService fileService;
   final String initialMarkdown;
 
   @override
@@ -28,6 +31,8 @@ class _EditorScreenState extends State<EditorScreen> {
   Timer? _saveTimer;
   bool _showPreview = true;
   String _saveStatus = 'Saved';
+  String? _currentFilePath;
+  String? _currentFileName;
 
   @override
   void initState() {
@@ -62,11 +67,53 @@ class _EditorScreenState extends State<EditorScreen> {
     });
   }
 
+  Future<void> _openFile() async {
+    final result = await widget.fileService.openFile();
+    if (result == null || !mounted) return;
+
+    setState(() {
+      _controller.text = result.content;
+      _currentFilePath = result.path;
+      _currentFileName = result.name;
+      _saveStatus = 'Saved';
+    });
+    _controller.selection = TextSelection.collapsed(
+      offset: _controller.text.length,
+    );
+    _editorFocusNode.requestFocus();
+  }
+
+  Future<void> _saveFile() async {
+    if (_currentFilePath != null) {
+      try {
+        await widget.fileService.saveFile(_controller.text, _currentFilePath!);
+        if (mounted) {
+          setState(() => _saveStatus = 'Saved');
+        }
+      } catch (_) {
+        if (mounted) {
+          setState(() => _saveStatus = 'Save failed');
+        }
+      }
+    } else {
+      final path = await widget.fileService.saveFileAs(_controller.text);
+      if (path != null && mounted) {
+        setState(() {
+          _currentFilePath = path;
+          _currentFileName = path.split('/').last.split('\\').last;
+          _saveStatus = 'Saved';
+        });
+      }
+    }
+  }
+
   void _newDocument() {
     _controller.text = '# Untitled document\n\n';
     _controller.selection = TextSelection.collapsed(
       offset: _controller.text.length,
     );
+    _currentFilePath = null;
+    _currentFileName = null;
     _editorFocusNode.requestFocus();
   }
 
@@ -125,8 +172,22 @@ class _EditorScreenState extends State<EditorScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('QLaw Markdown'),
+        title: Text(_currentFileName ?? 'QLaw Markdown'),
         actions: [
+          Tooltip(
+            message: 'Open file',
+            child: IconButton(
+              icon: const Icon(Icons.folder_open),
+              onPressed: _openFile,
+            ),
+          ),
+          Tooltip(
+            message: 'Save file',
+            child: IconButton(
+              icon: const Icon(Icons.save),
+              onPressed: _saveFile,
+            ),
+          ),
           Tooltip(
             message: 'New document',
             child: IconButton(
@@ -187,6 +248,7 @@ class _EditorScreenState extends State<EditorScreen> {
             stats: stats,
             previewEnabled: _showPreview,
             saveStatus: _saveStatus,
+            fileName: _currentFileName,
           ),
         ],
       ),

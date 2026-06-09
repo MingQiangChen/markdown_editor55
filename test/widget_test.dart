@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:markdown_editor/file_service/file_service.dart';
 import 'package:markdown_editor/main.dart';
 import 'package:markdown_editor/storage/document_store.dart';
 
@@ -11,6 +12,7 @@ void main() {
     await tester.pumpWidget(
       MarkdownEditorApp(
         documentStore: _FakeDocumentStore(),
+        fileService: _FakeFileService(),
         initialMarkdown:
             '# QLaw Markdown\n\nStart writing on the left. The preview updates as you type.',
       ),
@@ -22,6 +24,8 @@ void main() {
       findsOneWidget,
     );
     expect(find.byIcon(Icons.format_bold), findsOneWidget);
+    expect(find.byIcon(Icons.folder_open), findsOneWidget);
+    expect(find.byIcon(Icons.save), findsOneWidget);
     expect(find.text('Edit + preview'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.visibility));
@@ -42,4 +46,15 @@ class _FakeDocumentStore implements DocumentStore {
   Future<void> saveDraft(String content) async {
     draft = content;
   }
+}
+
+class _FakeFileService implements FileService {
+  @override
+  Future<FileOpenResult?> openFile() async => null;
+
+  @override
+  Future<String?> saveFileAs(String content) async => null;
+
+  @override
+  Future<void> saveFile(String content, String path) async {}
 }

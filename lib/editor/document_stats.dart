@@ -25,11 +25,13 @@ class StatusBar extends StatelessWidget {
     required this.stats,
     required this.previewEnabled,
     required this.saveStatus,
+    this.fileName,
   });
 
   final DocumentStats stats;
   final bool previewEnabled;
   final String saveStatus;
+  final String? fileName;
 
   @override
   Widget build(BuildContext context) {
@@ -41,6 +43,16 @@ class StatusBar extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14),
           child: Row(
             children: [
+              if (fileName != null) ...[
+                Text(
+                  fileName!,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(width: 12),
+                Text('·'),
+                const SizedBox(width: 12),
+              ],
               Text('${stats.words} words'),
               const SizedBox(width: 16),
               Text('${stats.characters} characters'),
