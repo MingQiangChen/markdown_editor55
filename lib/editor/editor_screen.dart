@@ -92,49 +92,72 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   Future<void> _openFile() async {
-    final result = await widget.fileService.openFile();
-    if (result == null || !mounted) return;
+    try {
+      final result = await widget.fileService.openFile();
+      if (result == null || !mounted) return;
 
-    setState(() {
-      _controller.text = result.content;
-      _currentFileName = result.name;
-      _saveStatus = 'Saved';
-    });
-    _controller.selection = TextSelection.collapsed(
-      offset: _controller.text.length,
-    );
-    _editorFocusNode.requestFocus();
-    await _addToRecent(result.path, result.name);
+      setState(() {
+        _controller.text = result.content;
+        _currentFileName = result.name;
+        _saveStatus = 'Saved';
+      });
+      _controller.selection = TextSelection.collapsed(
+        offset: _controller.text.length,
+      );
+      _editorFocusNode.requestFocus();
+      await _addToRecent(result.path, result.name);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _saveStatus = 'Open failed: $e');
+      }
+    }
   }
 
   Future<void> _openRecent(RecentDocument doc) async {
-    // Try to read from filesystem (desktop). If not available (web), use cached content.
-    final result = await widget.fileService.openFilePath(doc.path);
-    final content = result?.content ?? doc.content;
-    if (content == null || !mounted) return;
+    try {
+      // Try to read from filesystem (desktop). If not available (web), use cached content.
+      final result = await widget.fileService.openFilePath(doc.path);
+      final content = result?.content ?? doc.content;
+      if (content == null || !mounted) {
+        if (mounted) setState(() => _saveStatus = 'File not found');
+        return;
+      }
 
-    setState(() {
-      _controller.text = content;
-      _currentFileName = doc.name;
-      _saveStatus = 'Saved';
-    });
-    _controller.selection = TextSelection.collapsed(
-      offset: _controller.text.length,
-    );
-    _editorFocusNode.requestFocus();
-    await _addToRecent(doc.path, doc.name); // bumps timestamp to top.
+      setState(() {
+        _controller.text = content;
+        _currentFileName = doc.name;
+        _saveStatus = 'Saved';
+      });
+      _controller.selection = TextSelection.collapsed(
+        offset: _controller.text.length,
+      );
+      _editorFocusNode.requestFocus();
+      await _addToRecent(doc.path, doc.name); // bumps timestamp to top.
+    } catch (e) {
+      if (mounted) {
+        setState(() => _saveStatus = 'Open failed: $e');
+      }
+    }
   }
 
   Future<void> _saveFile() async {
     // Always open Save As dialog so the user can choose or confirm the filename.
-    final path = await widget.fileService.saveFileAs(_controller.text);
-    if (path != null && mounted) {
-      final name = path.split('/').last.split('\\').last;
-      setState(() {
-        _currentFileName = name;
-        _saveStatus = 'Saved';
-      });
-      await _addToRecent(path, name);
+    try {
+      final path = await widget.fileService.saveFileAs(_controller.text);
+      if (path != null && mounted) {
+        final name = path.split('/').last.split('\\').last;
+        setState(() {
+          _currentFileName = name;
+          _saveStatus = 'Saved';
+        });
+        await _addToRecent(path, name);
+      } else if (mounted) {
+        setState(() => _saveStatus = 'Save cancelled');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _saveStatus = 'Save failed: $e');
+      }
     }
   }
 

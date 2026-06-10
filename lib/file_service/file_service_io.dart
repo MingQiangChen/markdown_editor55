@@ -48,9 +48,11 @@ class _IoFileService implements FileService {
   @override
   Future<String?> saveFileAs(String content) async {
     final path = await FilePicker.platform.saveFile(
+      dialogTitle: 'Save Markdown File',
       type: FileType.custom,
       allowedExtensions: ['md'],
       fileName: 'untitled.md',
+      lockParentWindow: true,
     );
     if (path == null) return null;
 
@@ -72,9 +74,11 @@ class _IoFileService implements FileService {
     List<String> allowedExtensions,
   ) async {
     final path = await FilePicker.platform.saveFile(
+      dialogTitle: 'Export File',
       type: FileType.custom,
       allowedExtensions: allowedExtensions,
       fileName: fileName,
+      lockParentWindow: true,
     );
     if (path == null) return null;
 

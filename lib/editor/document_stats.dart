@@ -56,8 +56,15 @@ class StatusBar extends StatelessWidget {
               Text('${stats.words} words'),
               const SizedBox(width: 16),
               Text('${stats.characters} characters'),
-              const Spacer(),
-              Text(saveStatus),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  saveStatus,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.right,
+                ),
+              ),
               const SizedBox(width: 16),
               Text(previewEnabled ? 'Edit + preview' : 'Edit only'),
             ],

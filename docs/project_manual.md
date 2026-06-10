@@ -1,180 +1,146 @@
-# QLaw Markdown Project Manual
+# QLaw Markdown 使用说明
 
-## What This Project Does
+## 项目用途
 
-QLaw Markdown is a local-first Markdown editor. You can write Markdown, preview the result, open and save `.md` files, and export to HTML or PDF.
+QLaw Markdown 是一个本地优先的 Markdown 编辑器。它可以编辑 Markdown、实时预览、打开和保存 `.md` 文件，并导出 HTML 或 PDF。
 
-Key features:
+主要功能：
 
-- Markdown editing with formatting toolbar
-- Live preview with full GitHub-Flavored Markdown support
-- Syntax highlighting in code blocks
-- Open, save, and save-as for `.md` files
-- Recent documents list
-- Auto-save drafts between sessions
-- Export to HTML and PDF
-- External file change detection
-- Responsive layout (side-by-side or paged)
-- Dark and light themes
+- Markdown 编辑和格式化工具栏
+- GitHub-Flavored Markdown 实时预览
+- 代码块语法高亮
+- 打开、保存、另存为 `.md` 文件
+- 最近文件列表
+- 草稿自动保存和恢复
+- HTML 和 PDF 导出
+- 外部文件变更检测
+- 响应式布局
+- 深色和浅色主题
 
-## Open The Project
+## 打开项目
 
-Project directory:
+项目目录：
 
 ```text
 E:\markdown\markdown_editor
 ```
 
-Recommended editor:
+推荐编辑器：
 
-- VS Code with Flutter extension
-- Android Studio with Flutter plugin
+- VS Code + Flutter extension
+- Android Studio + Flutter plugin
 
-## Run The App
+## 运行应用
 
-From the project directory:
+Web：
 
 ```bash
 flutter pub get
 flutter run -d web-server --web-hostname=127.0.0.1 --web-port=5173
 ```
 
-Open:
+打开：
 
 ```text
 http://127.0.0.1:5173
 ```
 
-For Windows desktop:
+Windows 桌面：
 
 ```bash
 flutter run -d windows
 ```
 
-## Use The Editor
+## 使用编辑器
 
-### Main screen
+### 主界面
 
-On wide screens (≥760px), the editor and preview are side by side. On compact screens, they are shown as swipeable pages when preview is enabled.
+宽屏下（>= 600px）编辑器和预览区并排显示。窄屏下会使用分页布局。
 
-### Toolbar buttons
+### 工具栏
 
-| Button | Action |
-|--------|--------|
-| **Heading** | Inserts `## ` at the start of the current line |
-| **Bold** | Wraps selection with `**` |
-| **Italic** | Wraps selection with `*` |
-| **Inline code** | Wraps selection with `` ` `` |
-| **Link** | Wraps selection with `[` and `](https://example.com)` |
-| **Quote** | Inserts `> ` at start of line |
-| **List** | Inserts `- ` at start of line |
-| **Code block** | Inserts a fenced code block |
+| 按钮 | 行为 |
+| --- | --- |
+| Heading | 在当前行插入 `## ` |
+| Bold | 用 `**` 包裹选中文本 |
+| Italic | 用 `*` 包裹选中文本 |
+| Inline code | 用反引号包裹选中文本 |
+| Link | 插入 Markdown 链接 |
+| Quote | 在当前行插入 `> ` |
+| List | 在当前行插入 `- ` |
+| Code block | 插入 fenced code block |
 
-Most actions use the current text selection. If nothing is selected, Markdown markers are inserted at the cursor position.
+如果没有选中文本，格式标记会插入到光标位置。
 
-### App bar buttons
+### 顶部操作
 
-| Icon | Action |
-|------|--------|
-| 📂 Folder open | Open a `.md` file |
-| 💾 Save | Save current file (or Save As if new) |
-| 📥 Download | Export menu: HTML or PDF |
-| 🕐 History | Recent files list (click to reopen) |
-| 📝 Note add | Start a new document |
-| 👁️ Eye | Toggle preview visibility |
+| 操作 | 行为 |
+| --- | --- |
+| Open | 打开 `.md` 文件 |
+| Save | 打开 Save As 对话框并保存 |
+| Export | 导出 HTML 或 PDF |
+| Recent | 打开最近文件列表 |
+| New | 新建文档 |
+| Preview | 显示或隐藏预览 |
 
-### Status bar
+### 状态栏
 
-Shows:
+状态栏显示文件名、字数、字符数、保存状态和预览模式。
+
+示例：
 
 ```text
 filename.md · 150 words · 1200 characters · Saved · Edit + preview
 ```
 
-When no file is open, the filename section is hidden.
+## 文件操作
 
-## File Operations
+### 打开文件
 
-### Open a file
+点击 Open，或从最近文件列表打开。文件选择器只显示 `.md` 文件。
 
-Click the folder icon or use the recent files menu. Only `.md` files are shown in the file dialog.
+### 保存文件
 
-### Save a file
+点击 Save 会打开 Save As 对话框，让用户确认文件名和保存位置。当前版本不会静默覆盖文件。
 
-Click **Save** (💾) to open the Save As dialog. Choose a location and enter a filename, then confirm. The editor always asks for a filename — it never silently overwrites a file.
+Web 模式下保存会触发浏览器下载。
 
-On web, the file downloads immediately.
+### 最近文件
 
-### Recent files
+最近文件最多保留 10 条，按最近打开时间排序。
 
-Click the history icon to see up to 10 recently opened files. Click any item to reopen it.
+- 桌面端：从磁盘直接重新读取
+- Web 端：缓存文件内容到浏览器存储
 
-- **Desktop**: Files are reopened directly from disk.
-- **Web**: File content is cached in browser storage so files can be reopened without re-uploading.
+## 导出
 
-## Export
+### HTML
 
-### Export as HTML
+Export -> Export as HTML 会保存一个带内嵌样式的完整 HTML 页面。
 
-Click the download icon → **Export as HTML**. This saves a complete HTML page with embedded CSS styling.
+### PDF
 
-### Export as PDF
+Export -> Export as PDF 会打开平台的分享或保存流程。
 
-Click the download icon → **Export as PDF**. This opens the platform share/save dialog for the PDF.
+## 自动保存
 
-## Preview
+编辑时会以 500 ms 防抖自动保存草稿。
 
-The preview pane renders Markdown using `flutter_markdown_plus` with full GitHub-Flavored Markdown support:
-
-- Headings (h1–h6)
-- Bold, italic, inline code
-- Ordered and unordered lists (including nested)
-- Task lists (`- [ ]` and `- [x]`)
-- Code blocks with syntax highlighting
-- Blockquotes
-- Tables
-- Images
-- Links
-- Dividers
-
-### Preview toggle
-
-Use the eye icon in the app bar:
-
-- 👁️ Eye: preview is visible (default)
-- 🚫 Crossed eye: editor-only mode
-
-## Auto-Save
-
-The app auto-saves drafts while you type (500 ms debounce).
-
-Status bar values:
-
-```text
-Saving...
-Saved
-Save failed
-```
-
-Draft locations:
+草稿位置：
 
 ```text
 Windows: %APPDATA%\QLawMarkdown\draft.md
-Web: browser localStorage key qlaw_markdown.draft
+Web: localStorage key qlaw_markdown.draft
 ```
 
-## Recent Files Storage
+最近文件位置：
 
 ```text
 Windows: %APPDATA%\QLawMarkdown\recent.json
-Web: browser localStorage key qlaw_markdown.recent
+Web: localStorage key qlaw_markdown.recent
 ```
 
-Maximum 10 entries, ordered by most recently opened.
-
-## Verify The Project
-
-Run:
+## 验证项目
 
 ```bash
 dart format lib test
@@ -182,81 +148,18 @@ flutter analyze
 flutter test
 ```
 
-Expected result:
+## 已知限制
 
-```text
-No issues found
-All tests passed
-```
+- 编辑区本身仍是纯文本，不做编辑器内 Markdown 高亮
+- 暂不支持云同步
+- 暂不支持多文档标签页
+- 暂不支持拖拽打开文件
+- 暂不支持自定义导出模板
 
-## Build Release Artifacts
+## 后续方向
 
-Web:
-
-```bash
-flutter build web
-```
-
-Output:
-
-```text
-build\web
-```
-
-Windows:
-
-```bash
-flutter build windows
-```
-
-Output:
-
-```text
-build\windows\x64\runner\Release
-```
-
-## Git Workflow
-
-Check status:
-
-```bash
-git status --short --branch
-```
-
-Commit changes:
-
-```bash
-git add .
-git commit -m "Describe the change"
-```
-
-Push to GitHub:
-
-```bash
-git push -u origin main
-```
-
-Configured remote:
-
-```text
-https://github.com/MingQiangChen/markdown_editor55.git
-```
-
-## Known Limitations
-
-The current version does not yet support:
-
-- Editor-side syntax highlighting (plain text only)
-- Cloud sync
-- Multiple documents open simultaneously (tabs)
-- Drag-and-drop file opening
-- Custom export templates
-
-## Next Steps (Ideas)
-
-- Editor syntax highlighting (e.g., CodeMirror or re_editor)
-- Tabbed multi-document editing
-- Drag-and-drop file opening
-- Cloud sync with conflict resolution
-- Custom CSS export templates
-- Mobile/touch platform support
+- 编辑区语法高亮
+- 多文档标签页
+- 拖拽打开文件
+- 云同步和冲突处理
+- 自定义 CSS 导出模板

@@ -37,6 +37,66 @@ void main() {
     expect(find.text('Edit only'), findsOneWidget);
     expect(find.byIcon(Icons.visibility_off), findsOneWidget);
   });
+
+  testWidgets('save cancellation is shown in the status bar', (tester) async {
+    await tester.pumpWidget(
+      MarkdownEditorApp(
+        documentStore: _FakeDocumentStore(),
+        fileService: _FakeFileService(),
+        recentStore: _FakeRecentStore(),
+        initialMarkdown: '# Draft',
+      ),
+    );
+
+    await tester.tap(find.byIcon(Icons.save));
+    await tester.pump();
+
+    expect(find.text('Save cancelled'), findsOneWidget);
+  });
+
+  testWidgets('open failure is shown in the status bar', (tester) async {
+    await tester.pumpWidget(
+      MarkdownEditorApp(
+        documentStore: _FakeDocumentStore(),
+        fileService: _FakeFileService(openFileError: Exception('boom')),
+        recentStore: _FakeRecentStore(),
+        initialMarkdown: '# Draft',
+      ),
+    );
+
+    await tester.tap(find.byIcon(Icons.folder_open));
+    await tester.pump();
+
+    expect(find.textContaining('Open failed:'), findsOneWidget);
+    expect(find.textContaining('boom'), findsOneWidget);
+  });
+
+  testWidgets('missing recent file is shown in the status bar', (tester) async {
+    await tester.pumpWidget(
+      MarkdownEditorApp(
+        documentStore: _FakeDocumentStore(),
+        fileService: _FakeFileService(),
+        recentStore: _FakeRecentStore(
+          docs: [
+            RecentDocument(
+              path: 'missing.md',
+              name: 'missing.md',
+              lastOpened: DateTime(2026),
+            ),
+          ],
+        ),
+        initialMarkdown: '# Draft',
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byIcon(Icons.history));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('missing.md').first);
+    await tester.pump();
+
+    expect(find.text('File not found'), findsOneWidget);
+  });
 }
 
 class _FakeDocumentStore implements DocumentStore {
@@ -52,8 +112,18 @@ class _FakeDocumentStore implements DocumentStore {
 }
 
 class _FakeFileService implements FileService {
+  _FakeFileService({this.openFileError});
+
+  final Object? openFileError;
+
   @override
-  Future<FileOpenResult?> openFile() async => null;
+  Future<FileOpenResult?> openFile() async {
+    final error = openFileError;
+    if (error != null) {
+      throw error;
+    }
+    return null;
+  }
 
   @override
   Future<FileOpenResult?> openFilePath(String path) async => null;
@@ -76,11 +146,19 @@ class _FakeFileService implements FileService {
 }
 
 class _FakeRecentStore implements RecentStore {
-  @override
-  Future<List<RecentDocument>> loadAll() async => [];
+  _FakeRecentStore({List<RecentDocument>? docs}) : _docs = docs ?? [];
+
+  final List<RecentDocument> _docs;
 
   @override
-  Future<void> add(RecentDocument doc) async {}
+  Future<List<RecentDocument>> loadAll() async => _docs;
+
+  @override
+  Future<void> add(RecentDocument doc) async {
+    _docs
+      ..removeWhere((existing) => existing.path == doc.path)
+      ..insert(0, doc);
+  }
 
   @override
   Future<void> remove(String path) async {}
