@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 
+import 'markdown_extensions/markdown_extensions.dart';
 import 'markdown_syntax_highlighter.dart';
 
 class MarkdownPreview extends StatelessWidget {
@@ -42,6 +43,9 @@ class MarkdownPreview extends StatelessWidget {
         styleSheet: styleSheet,
         syntaxHighlighter: MarkdownSyntaxHighlighter(colorScheme: colorScheme),
         padding: const EdgeInsets.all(22),
+        inlineSyntaxes: [MathInlineSyntax()],
+        blockSyntaxes: [MathBlockSyntax(), MermaidBlockSyntax()],
+        builders: {'math': MathBuilder(), 'mermaid': MermaidBuilder()},
       ),
     );
   }

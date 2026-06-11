@@ -1,4 +1,4 @@
-﻿# QLaw Markdown 使用说明
+# QLaw Markdown 使用说明
 
 ## 项目用途
 QLaw Markdown 是一个本地优先的 Markdown 编辑器。它可以编辑 Markdown、实时预览、打开和保存 `.md` 文件，并导出 HTML 或 PDF。
@@ -20,6 +20,9 @@ QLaw Markdown 是一个本地优先的 Markdown 编辑器。它可以编辑 Mark
 - 深色和浅色主题
 - 视图模式切换（编辑/分屏/预览）
 - 自动换行开关
+- 数学公式支持（行内和块级）
+- Mermaid 图表支持
+- 导出选项对话框（CSS 模板选择）
 - 键盘快捷键
 
 ## 打开项目
@@ -67,6 +70,9 @@ flutter run -d windows
 | Quote | 在当前行插入 `> ` |
 | List | 在当前行插入 `- ` |
 | Code block | 插入 fenced code block |
+| Inline math | 用 $ 包裹选中文本 |
+| Math block | 插入 $$... 块 |
+| Mermaid diagram | 插入 mermaid 代码块 |
 
 如果没有选中文本，格式标记会插入到光标位置。
 
@@ -164,6 +170,11 @@ Web 模式下保存会触发浏览器下载。
 
 ## 导出
 
+导出时会弹出选项对话框，可以选择：
+- CSS 模板：Default、Dark、Minimal、GitHub
+- 启用 KaTeX 数学公式渲染
+- 启用 Mermaid 图表渲染
+
 ### HTML
 Export -> Export as HTML 会保存一个带内嵌样式的完整 HTML 页面。
 
@@ -195,12 +206,10 @@ flutter test
 
 ## 已知限制
 - 暂不支持云同步
-- 暂不支持自定义导出模板
-- 暂不支持数学公式和图表渲染
+- 数学公式在预览中显示为格式化文本（导出 HTML 时可通过 KaTeX 渲染）
+- Mermaid 图表在预览中显示为代码块（导出 HTML 时可通过 Mermaid.js 渲染）
 
 ## 后续方向
 - 云同步和冲突处理
-- 自定义 CSS 导出模板
-- 数学公式支持（KaTeX）
-- 图表支持（Mermaid）
+- 更多 CSS 导出模板
 - 大文件性能优化

@@ -15,6 +15,9 @@ A Flutter Markdown editor for desktop and web.
 - Responsive layout: split editor/preview on wide screens (>= 600px), paged layout on compact screens
 - Document word and character counts
 - Dark and light themes
+- Math formula support (inline $...$ and block $...$) with KaTeX rendering in export
+- Mermaid diagram support with Mermaid.js rendering in export
+- Export options dialog with CSS templates (Default, Dark, Minimal, GitHub)
 
 ## Storage
 
@@ -62,6 +65,7 @@ flutter test
 lib/
   main.dart                        App entry point
   editor/                          Editor widgets (screen, toolbar, preview, stats)
+    markdown_extensions/           Custom Markdown syntax extensions (math, mermaid)
   file_service/                    File open/save/export (IO + Web)
   recent_store/                    Recent documents persistence
   storage/                         Draft auto-save persistence

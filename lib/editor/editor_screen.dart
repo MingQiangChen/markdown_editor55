@@ -1,9 +1,10 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'package:desktop_drop/desktop_drop.dart';
 
 import 'package:flutter/material.dart';
 
 import '../export/export_service.dart';
+import '../export/export_options_dialog.dart';
 import '../file_service/file_service.dart';
 import '../recent_store/recent_store.dart';
 import '../storage/document_store.dart';
@@ -46,8 +47,7 @@ class _EditorScreenState extends State<EditorScreen> {
   bool _isDragging = false;
   bool _showFindReplace = false;
 
-  DocumentTab get _activeTab =>
-      _tabs.firstWhere((t) => t.id == _activeTabId);
+  DocumentTab get _activeTab => _tabs.firstWhere((t) => t.id == _activeTabId);
 
   @override
   void initState() {
@@ -186,20 +186,21 @@ class _EditorScreenState extends State<EditorScreen> {
   Future<bool> _confirmCloseUnsaved(String fileName) async {
     final result = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Unsaved changes'),
-        content: Text('"$fileName" has unsaved changes. Close anyway?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Unsaved changes'),
+            content: Text('"$fileName" has unsaved changes. Close anyway?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton.tonal(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Close'),
+              ),
+            ],
           ),
-          FilledButton.tonal(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
     );
     return result ?? false;
   }
@@ -296,7 +297,9 @@ class _EditorScreenState extends State<EditorScreen> {
 
   Future<void> _saveFile() async {
     try {
-      final path = await widget.fileService.saveFileAs(_activeTab.controller.text);
+      final path = await widget.fileService.saveFileAs(
+        _activeTab.controller.text,
+      );
       if (path != null && mounted) {
         final name = path.split('/').last.split('\\').last;
         setState(() {
@@ -317,18 +320,23 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   Future<void> _exportHtml() async {
+    final options = await showExportOptionsDialog(context);
+    if (options == null) return;
+
     final html = markdownToHtmlPage(
       _activeTab.controller.text,
       title: _activeTab.title,
+      template: options.template,
+      enableKatex: options.enableKatex,
+      enableMermaid: options.enableMermaid,
     );
     final titleWithoutExt = _activeTab.title.replaceAll(RegExp(r'\.md$'), '');
     final defaultName = '$titleWithoutExt.html';
     try {
-      final path = await widget.fileService.exportFile(
-        html,
-        defaultName,
-        ['html', 'htm'],
-      );
+      final path = await widget.fileService.exportFile(html, defaultName, [
+        'html',
+        'htm',
+      ]);
       if (mounted) {
         setState(() {
           _saveStatus = path != null ? 'Exported' : 'Export cancelled';
@@ -342,10 +350,16 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   Future<void> _exportPdf() async {
+    final options = await showExportOptionsDialog(context);
+    if (options == null) return;
+
     try {
       await shareAsPdf(
         _activeTab.controller.text,
         filename: _activeTab.title,
+        template: options.template,
+        enableKatex: options.enableKatex,
+        enableMermaid: options.enableMermaid,
       );
       if (mounted) setState(() => _saveStatus = 'Exported');
     } catch (e) {
@@ -365,8 +379,11 @@ class _EditorScreenState extends State<EditorScreen> {
     final text = controller.text;
 
     if (selection.isCollapsed) {
-      controller.text =
-        text.replaceRange(selection.start, selection.start, before + after);
+      controller.text = text.replaceRange(
+        selection.start,
+        selection.start,
+        before + after,
+      );
       controller.selection = TextSelection.collapsed(
         offset: selection.start + before.length,
       );
@@ -391,8 +408,7 @@ class _EditorScreenState extends State<EditorScreen> {
     final cursorPos = controller.selection.baseOffset;
 
     final lineStart = text.lastIndexOf('\n', cursorPos - 1) + 1;
-    controller.text =
-        text.replaceRange(lineStart, lineStart, prefix);
+    controller.text = text.replaceRange(lineStart, lineStart, prefix);
     controller.selection = TextSelection.collapsed(
       offset: cursorPos + prefix.length,
     );
@@ -402,8 +418,11 @@ class _EditorScreenState extends State<EditorScreen> {
   void _insertBlock(String block) {
     final controller = _activeTab.controller;
     final selection = controller.selection;
-    controller.text =
-        controller.text.replaceRange(selection.start, selection.end, block);
+    controller.text = controller.text.replaceRange(
+      selection.start,
+      selection.end,
+      block,
+    );
     controller.selection = TextSelection.collapsed(
       offset: selection.start + block.length,
     );
@@ -479,13 +498,14 @@ class _EditorScreenState extends State<EditorScreen> {
             child: PopupMenuButton<RecentDocument>(
               icon: const Icon(Icons.history),
               onSelected: _openRecent,
-              itemBuilder: (context) => [
-                for (final doc in _recentDocs)
-                  PopupMenuItem<RecentDocument>(
-                    value: doc,
-                    child: Text(doc.name),
-                  ),
-              ],
+              itemBuilder:
+                  (context) => [
+                    for (final doc in _recentDocs)
+                      PopupMenuItem<RecentDocument>(
+                        value: doc,
+                        child: Text(doc.name),
+                      ),
+                  ],
             ),
           ),
           Tooltip(
@@ -509,22 +529,18 @@ class _EditorScreenState extends State<EditorScreen> {
               ViewMode.previewOnly => 'Preview only',
             },
             child: IconButton(
-              icon: Icon(
-                switch (_viewMode) {
-                  ViewMode.editorOnly => Icons.edit,
-                  ViewMode.split => Icons.view_column,
-                  ViewMode.previewOnly => Icons.visibility,
-                },
-              ),
+              icon: Icon(switch (_viewMode) {
+                ViewMode.editorOnly => Icons.edit,
+                ViewMode.split => Icons.view_column,
+                ViewMode.previewOnly => Icons.visibility,
+              }),
               onPressed: _cycleViewMode,
             ),
           ),
           Tooltip(
             message: _wordWrap ? 'Word wrap: on' : 'Word wrap: off',
             child: IconButton(
-              icon: Icon(
-                _wordWrap ? Icons.wrap_text : Icons.text_format,
-              ),
+              icon: Icon(_wordWrap ? Icons.wrap_text : Icons.text_format),
               onPressed: _toggleWordWrap,
             ),
           ),
@@ -539,9 +555,13 @@ class _EditorScreenState extends State<EditorScreen> {
         onOpen: _openFile,
         onNewDocument: _newDocument,
         onFind: _toggleFindReplace,
-        onTogglePreview: () => setState(() {
-          _viewMode = _viewMode == ViewMode.split ? ViewMode.editorOnly : ViewMode.split;
-        }),
+        onTogglePreview:
+            () => setState(() {
+              _viewMode =
+                  _viewMode == ViewMode.split
+                      ? ViewMode.editorOnly
+                      : ViewMode.split;
+            }),
         onCycleViewMode: _cycleViewMode,
         onToggleWordWrap: _toggleWordWrap,
         onNextTab: _nextTab,
@@ -571,6 +591,12 @@ class _EditorScreenState extends State<EditorScreen> {
                     onQuote: () => _prefixCurrentLine('> '),
                     onList: () => _prefixCurrentLine('- '),
                     onCodeBlock: () => _insertBlock('```\ncode\n```\n'),
+                    onInlineMath: () => _wrapSelection('\$', '\$'),
+                    onBlockMath: () => _insertBlock('\$\$\nformula\n\$\$\n'),
+                    onMermaid:
+                        () => _insertBlock(
+                          '```mermaid\ngraph TD\n    A[Start] --> B[End]\n```\n',
+                        ),
                   ),
                   if (_showFindReplace)
                     FindReplaceBar(
@@ -592,8 +618,9 @@ class _EditorScreenState extends State<EditorScreen> {
 
                         return switch (_viewMode) {
                           ViewMode.editorOnly => editor,
-                          ViewMode.split when compact =>
-                            PageView(children: [editor, preview]),
+                          ViewMode.split when compact => PageView(
+                            children: [editor, preview],
+                          ),
                           ViewMode.split => Row(
                             children: [
                               Expanded(child: editor),
@@ -618,7 +645,9 @@ class _EditorScreenState extends State<EditorScreen> {
               if (_isDragging)
                 Positioned.fill(
                   child: Container(
-                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.1),
                     child: Center(
                       child: Container(
                         padding: const EdgeInsets.all(24),
@@ -642,7 +671,9 @@ class _EditorScreenState extends State<EditorScreen> {
                             const SizedBox(height: 12),
                             Text(
                               'Drop .md file to open',
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              style: Theme.of(
+                                context,
+                              ).textTheme.titleMedium?.copyWith(
                                 color: Theme.of(context).colorScheme.primary,
                               ),
                             ),

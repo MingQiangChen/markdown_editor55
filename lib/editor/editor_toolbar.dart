@@ -11,6 +11,9 @@ class EditorToolbar extends StatelessWidget {
     required this.onQuote,
     required this.onList,
     required this.onCodeBlock,
+    required this.onInlineMath,
+    required this.onBlockMath,
+    required this.onMermaid,
   });
 
   final VoidCallback onBold;
@@ -21,6 +24,9 @@ class EditorToolbar extends StatelessWidget {
   final VoidCallback onQuote;
   final VoidCallback onList;
   final VoidCallback onCodeBlock;
+  final VoidCallback onInlineMath;
+  final VoidCallback onBlockMath;
+  final VoidCallback onMermaid;
 
   @override
   Widget build(BuildContext context) {
@@ -66,6 +72,25 @@ class EditorToolbar extends StatelessWidget {
               icon: Icons.data_object,
               label: 'Code block',
               onPressed: onCodeBlock,
+            ),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 4),
+              child: VerticalDivider(width: 1),
+            ),
+            _ToolButton(
+              icon: Icons.functions,
+              label: 'Inline math',
+              onPressed: onInlineMath,
+            ),
+            _ToolButton(
+              icon: Icons.calculate,
+              label: 'Math block',
+              onPressed: onBlockMath,
+            ),
+            _ToolButton(
+              icon: Icons.account_tree,
+              label: 'Mermaid diagram',
+              onPressed: onMermaid,
             ),
           ],
         ),

@@ -1,4 +1,4 @@
-﻿# QLaw Markdown Technical Design
+# QLaw Markdown Technical Design
 
 ## Overview
 
@@ -22,6 +22,9 @@ QLaw Markdown is a Flutter desktop/web Markdown editor. It supports:
 - Windows desktop and Web from one codebase
 - View mode switching (Editor/Split/Preview)
 - Word wrap toggle
+- Math formula support (inline and block)
+- Mermaid diagram support
+- Export options dialog with CSS templates
 
 ## Runtime Targets
 
@@ -304,3 +307,6 @@ flutter test
 11. Add editor inline syntax highlighting (overlay technique)
 12. Add keyboard shortcuts for formatting, file ops, and navigation
 13. Add find and replace bar
+14. Add math formula support (inline and block)
+15. Add Mermaid diagram support
+16. Add export options dialog with CSS templates
