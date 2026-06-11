@@ -47,12 +47,15 @@ class _IoFileService implements FileService {
 
   @override
   Future<String?> saveFileAs(String content) async {
+    // Windows 上禁用 lockParentWindow，避免无法输入文件名的问题
+    final bool lockParent = !Platform.isWindows;
+    
     final path = await FilePicker.platform.saveFile(
       dialogTitle: 'Save Markdown File',
       type: FileType.custom,
       allowedExtensions: ['md'],
       fileName: 'untitled.md',
-      lockParentWindow: true,
+      lockParentWindow: lockParent,
     );
     if (path == null) return null;
 
@@ -73,12 +76,15 @@ class _IoFileService implements FileService {
     String fileName,
     List<String> allowedExtensions,
   ) async {
+    // Windows 上禁用 lockParentWindow，避免无法输入文件名的问题
+    final bool lockParent = !Platform.isWindows;
+    
     final path = await FilePicker.platform.saveFile(
       dialogTitle: 'Export File',
       type: FileType.custom,
       allowedExtensions: allowedExtensions,
       fileName: fileName,
-      lockParentWindow: true,
+      lockParentWindow: lockParent,
     );
     if (path == null) return null;
 

@@ -1,4 +1,5 @@
-import 'dart:async';
+﻿import 'dart:async';
+import 'package:desktop_drop/desktop_drop.dart';
 
 import 'package:flutter/material.dart';
 
@@ -7,9 +8,13 @@ import '../file_service/file_service.dart';
 import '../recent_store/recent_store.dart';
 import '../storage/document_store.dart';
 import 'document_stats.dart';
+import 'document_tab.dart';
+import 'document_tab_bar.dart';
 import 'editor_toolbar.dart';
 import 'markdown_preview.dart';
 import 'markdown_text_editor.dart';
+import 'editor_shortcuts.dart';
+import 'find_replace_bar.dart';
 
 class EditorScreen extends StatefulWidget {
   const EditorScreen({
@@ -30,20 +35,34 @@ class EditorScreen extends StatefulWidget {
 }
 
 class _EditorScreenState extends State<EditorScreen> {
-  late final TextEditingController _controller;
-  final FocusNode _editorFocusNode = FocusNode();
+  final List<DocumentTab> _tabs = [];
+  String _activeTabId = '';
+  int _tabCounter = 0;
   Timer? _saveTimer;
   bool _showPreview = true;
   String _saveStatus = 'Saved';
-  String? _currentFileName;
   List<RecentDocument> _recentDocs = [];
+  bool _isDragging = false;
+  bool _showFindReplace = false;
+
+  DocumentTab get _activeTab =>
+      _tabs.firstWhere((t) => t.id == _activeTabId);
 
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(text: widget.initialMarkdown);
-    _controller.addListener(_handleDocumentChanged);
+    // Create the first tab with the initial draft content.
+    final firstTab = DocumentTab.empty(id: _nextTabId());
+    firstTab.controller.text = widget.initialMarkdown;
+    firstTab.controller.addListener(_handleDocumentChanged);
+    _tabs.add(firstTab);
+    _activeTabId = firstTab.id;
     _loadRecentDocs();
+  }
+
+  String _nextTabId() {
+    _tabCounter++;
+    return 'tab_$_tabCounter';
   }
 
   Future<void> _loadRecentDocs() async {
@@ -56,18 +75,19 @@ class _EditorScreenState extends State<EditorScreen> {
   @override
   void dispose() {
     _saveTimer?.cancel();
-    _controller.removeListener(_handleDocumentChanged);
-    _controller.dispose();
-    _editorFocusNode.dispose();
+    for (final tab in _tabs) {
+      tab.dispose();
+    }
     super.dispose();
   }
 
   void _handleDocumentChanged() {
     setState(() => _saveStatus = 'Saving...');
+    _activeTab.isDirty = true;
     _saveTimer?.cancel();
     _saveTimer = Timer(const Duration(milliseconds: 500), () async {
       try {
-        await widget.documentStore.saveDraft(_controller.text);
+        await widget.documentStore.saveDraft(_activeTab.controller.text);
         if (mounted) {
           setState(() => _saveStatus = 'Saved');
         }
@@ -79,12 +99,117 @@ class _EditorScreenState extends State<EditorScreen> {
     });
   }
 
+  void _switchTab(String tabId) {
+    if (tabId == _activeTabId) return;
+    setState(() {
+      _activeTabId = tabId;
+      _saveStatus = 'Saved';
+    });
+    _activeTab.focusNode.requestFocus();
+  }
+
+  void _toggleFindReplace() {
+    setState(() => _showFindReplace = !_showFindReplace);
+  }
+
+  void _nextTab() {
+    final currentIndex = _tabs.indexWhere((t) => t.id == _activeTabId);
+    if (currentIndex == -1) return;
+    final nextIndex = (currentIndex + 1) % _tabs.length;
+    _switchTab(_tabs[nextIndex].id);
+  }
+
+  void _previousTab() {
+    final currentIndex = _tabs.indexWhere((t) => t.id == _activeTabId);
+    if (currentIndex == -1) return;
+    final prevIndex = (currentIndex - 1 + _tabs.length) % _tabs.length;
+    _switchTab(_tabs[prevIndex].id);
+  }
+
+  void _closeActiveTab() {
+    _closeTab(_activeTabId);
+  }
+
+  Future<void> _closeTab(String tabId) async {
+    final tabIndex = _tabs.indexWhere((t) => t.id == tabId);
+    if (tabIndex == -1) return;
+
+    final tab = _tabs[tabIndex];
+
+    // If the tab is dirty, ask for confirmation.
+    if (tab.isDirty && tab.controller.text.isNotEmpty) {
+      final confirmed = await _confirmCloseUnsaved(tab.title);
+      if (!confirmed) return;
+    }
+
+    // Don't allow closing the last tab.
+    if (_tabs.length == 1) {
+      // Reset the tab instead of closing it.
+      tab.controller.clear();
+      tab.title = 'Untitled';
+      tab.filePath = null;
+      tab.isDirty = false;
+      setState(() {});
+      return;
+    }
+
+    // Determine new active tab.
+    String? newActiveId;
+    if (_activeTabId == tabId) {
+      if (tabIndex > 0) {
+        newActiveId = _tabs[tabIndex - 1].id;
+      } else {
+        newActiveId = _tabs[tabIndex + 1].id;
+      }
+    }
+
+    tab.controller.removeListener(_handleDocumentChanged);
+    tab.dispose();
+    setState(() {
+      _tabs.removeAt(tabIndex);
+      if (newActiveId != null) {
+        _activeTabId = newActiveId;
+      }
+    });
+  }
+
+  Future<bool> _confirmCloseUnsaved(String fileName) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Unsaved changes'),
+        content: Text('"$fileName" has unsaved changes. Close anyway?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton.tonal(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
+  void _newTab() {
+    final tab = DocumentTab.empty(id: _nextTabId());
+    tab.controller.addListener(_handleDocumentChanged);
+    setState(() {
+      _tabs.add(tab);
+      _activeTabId = tab.id;
+      _saveStatus = 'Saved';
+    });
+    tab.focusNode.requestFocus();
+  }
+
   Future<void> _addToRecent(String path, String name) async {
     final doc = RecentDocument(
       path: path,
       name: name,
-      // On web, cache content so recent files can be reopened without filesystem access.
-      content: path == name ? _controller.text : null,
+      content: path == name ? _activeTab.controller.text : null,
       lastOpened: DateTime.now(),
     );
     await widget.recentStore.add(doc);
@@ -96,15 +221,7 @@ class _EditorScreenState extends State<EditorScreen> {
       final result = await widget.fileService.openFile();
       if (result == null || !mounted) return;
 
-      setState(() {
-        _controller.text = result.content;
-        _currentFileName = result.name;
-        _saveStatus = 'Saved';
-      });
-      _controller.selection = TextSelection.collapsed(
-        offset: _controller.text.length,
-      );
-      _editorFocusNode.requestFocus();
+      _openFileResult(result);
       await _addToRecent(result.path, result.name);
     } catch (e) {
       if (mounted) {
@@ -113,9 +230,24 @@ class _EditorScreenState extends State<EditorScreen> {
     }
   }
 
+  void _openFileResult(FileOpenResult result) {
+    final tab = DocumentTab.fromFile(
+      id: _nextTabId(),
+      filePath: result.path,
+      fileName: result.name,
+      content: result.content,
+    );
+    tab.controller.addListener(_handleDocumentChanged);
+    setState(() {
+      _tabs.add(tab);
+      _activeTabId = tab.id;
+      _saveStatus = 'Saved';
+    });
+    tab.focusNode.requestFocus();
+  }
+
   Future<void> _openRecent(RecentDocument doc) async {
     try {
-      // Try to read from filesystem (desktop). If not available (web), use cached content.
       final result = await widget.fileService.openFilePath(doc.path);
       final content = result?.content ?? doc.content;
       if (content == null || !mounted) {
@@ -123,16 +255,29 @@ class _EditorScreenState extends State<EditorScreen> {
         return;
       }
 
-      setState(() {
-        _controller.text = content;
-        _currentFileName = doc.name;
-        _saveStatus = 'Saved';
-      });
-      _controller.selection = TextSelection.collapsed(
-        offset: _controller.text.length,
+      final fileResult = FileOpenResult(
+        content: content,
+        path: doc.path,
+        name: doc.name,
+        lastModified: result?.lastModified,
       );
-      _editorFocusNode.requestFocus();
-      await _addToRecent(doc.path, doc.name); // bumps timestamp to top.
+      _openFileResult(fileResult);
+      await _addToRecent(doc.path, doc.name);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _saveStatus = 'Open failed: $e');
+      }
+    }
+  }
+
+  /// Opens a file by path (used by drag-and-drop).
+  Future<void> openFilePath(String path) async {
+    try {
+      final result = await widget.fileService.openFilePath(path);
+      if (result == null || !mounted) return;
+
+      _openFileResult(result);
+      await _addToRecent(result.path, result.name);
     } catch (e) {
       if (mounted) {
         setState(() => _saveStatus = 'Open failed: $e');
@@ -141,13 +286,14 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   Future<void> _saveFile() async {
-    // Always open Save As dialog so the user can choose or confirm the filename.
     try {
-      final path = await widget.fileService.saveFileAs(_controller.text);
+      final path = await widget.fileService.saveFileAs(_activeTab.controller.text);
       if (path != null && mounted) {
         final name = path.split('/').last.split('\\').last;
         setState(() {
-          _currentFileName = name;
+          _activeTab.title = name;
+          _activeTab.filePath = path;
+          _activeTab.isDirty = false;
           _saveStatus = 'Saved';
         });
         await _addToRecent(path, name);
@@ -162,95 +308,125 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   Future<void> _exportHtml() async {
-    final html = markdownToHtmlPage(_controller.text, title: _currentFileName);
-    final defaultName = (_currentFileName ?? 'document').replaceAll(
-      '.md',
-      '.html',
+    final html = markdownToHtmlPage(
+      _activeTab.controller.text,
+      title: _activeTab.title,
     );
-    await widget.fileService.exportFile(html, defaultName, ['html']);
-    if (mounted) {
-      setState(() => _saveStatus = 'Saved');
+    final defaultName =
+        (_activeTab.title).replaceAll(RegExp(r'\.md$'), '') + '.html';
+    try {
+      final path = await widget.fileService.exportFile(
+        html,
+        defaultName,
+        ['html', 'htm'],
+      );
+      if (mounted) {
+        setState(() {
+          _saveStatus = path != null ? 'Exported' : 'Export cancelled';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _saveStatus = 'Export failed: $e');
+      }
     }
   }
 
   Future<void> _exportPdf() async {
     try {
       await shareAsPdf(
-        _controller.text,
-        filename: _currentFileName ?? 'document.md',
+        _activeTab.controller.text,
+        filename: _activeTab.title,
       );
-    } catch (_) {
+      if (mounted) setState(() => _saveStatus = 'Exported');
+    } catch (e) {
       if (mounted) {
-        setState(() => _saveStatus = 'Export failed');
+        setState(() => _saveStatus = 'Export failed: $e');
       }
     }
   }
 
   void _newDocument() {
-    _controller.text = '# Untitled document\n\n';
-    _controller.selection = TextSelection.collapsed(
-      offset: _controller.text.length,
-    );
-    _currentFileName = null;
-    _editorFocusNode.requestFocus();
+    _newTab();
   }
 
-  void _wrapSelection(String prefix, String suffix) {
-    final selection = _controller.selection;
-    final text = _controller.text;
-    final start = selection.start < 0 ? text.length : selection.start;
-    final end = selection.end < 0 ? text.length : selection.end;
-    final selected = text.substring(start, end);
-    final replacement = '$prefix$selected$suffix';
+  void _wrapSelection(String before, String after) {
+    final controller = _activeTab.controller;
+    final selection = controller.selection;
+    final text = controller.text;
 
-    _controller.value = TextEditingValue(
-      text: text.replaceRange(start, end, replacement),
-      selection: TextSelection.collapsed(
-        offset: start + prefix.length + selected.length,
-      ),
-    );
-    _editorFocusNode.requestFocus();
+    if (selection.isCollapsed) {
+      controller.text =
+        text.replaceRange(selection.start, selection.start, before + after);
+      controller.selection = TextSelection.collapsed(
+        offset: selection.start + before.length,
+      );
+    } else {
+      final selected = text.substring(selection.start, selection.end);
+      controller.text = text.replaceRange(
+        selection.start,
+        selection.end,
+        '$before$selected$after',
+      );
+      controller.selection = TextSelection(
+        baseOffset: selection.start + before.length,
+        extentOffset: selection.end + before.length,
+      );
+    }
+    _activeTab.focusNode.requestFocus();
   }
 
   void _prefixCurrentLine(String prefix) {
-    final selection = _controller.selection;
-    final text = _controller.text;
-    final cursor =
-        selection.baseOffset < 0 ? text.length : selection.baseOffset;
-    final lineStart = text.lastIndexOf('\n', cursor - 1) + 1;
+    final controller = _activeTab.controller;
+    final text = controller.text;
+    final cursorPos = controller.selection.baseOffset;
 
-    _controller.value = TextEditingValue(
-      text: text.replaceRange(lineStart, lineStart, prefix),
-      selection: TextSelection.collapsed(offset: cursor + prefix.length),
+    final lineStart = text.lastIndexOf('\n', cursorPos - 1) + 1;
+    controller.text =
+        text.replaceRange(lineStart, lineStart, prefix);
+    controller.selection = TextSelection.collapsed(
+      offset: cursorPos + prefix.length,
     );
-    _editorFocusNode.requestFocus();
+    _activeTab.focusNode.requestFocus();
   }
 
-  void _insertBlock(String value) {
-    final selection = _controller.selection;
-    final text = _controller.text;
-    final start = selection.start < 0 ? text.length : selection.start;
-    final needsLeadingBreak = start > 0 && text[start - 1] != '\n';
-    final insertion = needsLeadingBreak ? '\n$value' : value;
-
-    _controller.value = TextEditingValue(
-      text: text.replaceRange(
-        start,
-        selection.end < 0 ? start : selection.end,
-        insertion,
-      ),
-      selection: TextSelection.collapsed(offset: start + insertion.length),
+  void _insertBlock(String block) {
+    final controller = _activeTab.controller;
+    final selection = controller.selection;
+    controller.text =
+        controller.text.replaceRange(selection.start, selection.end, block);
+    controller.selection = TextSelection.collapsed(
+      offset: selection.start + block.length,
     );
-    _editorFocusNode.requestFocus();
+    _activeTab.focusNode.requestFocus();
+  }
+
+
+  void _onDragEntered(_) {
+    setState(() => _isDragging = true);
+  }
+
+  void _onDragExited(_) {
+    setState(() => _isDragging = false);
+  }
+
+  Future<void> _onDragDone(DropDoneDetails message) async {
+    setState(() => _isDragging = false);
+    for (final file in message.files) {
+      if (file.path.toLowerCase().endsWith('.md')) {
+        await openFilePath(file.path);
+        break; // Only open the first .md file.
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final stats = DocumentStats.fromText(_controller.text);
+    final stats = DocumentStats.fromText(_activeTab.controller.text);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_currentFileName ?? 'QLaw Markdown'),
+        title: Text(_activeTab.title),
         actions: [
           Tooltip(
             message: 'Open file',
@@ -323,6 +499,13 @@ class _EditorScreenState extends State<EditorScreen> {
             ),
           ),
           Tooltip(
+            message: 'Find and replace (Ctrl+F)',
+            child: IconButton(
+              icon: const Icon(Icons.search),
+              onPressed: _toggleFindReplace,
+            ),
+          ),
+          Tooltip(
             message: 'New document',
             child: IconButton(
               icon: const Icon(Icons.note_add),
@@ -340,8 +523,34 @@ class _EditorScreenState extends State<EditorScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
+      body: EditorShortcuts(
+        onBold: () => _wrapSelection('**', '**'),
+        onItalic: () => _wrapSelection('*', '*'),
+        onCode: () => _wrapSelection('', ''),
+        onLink: () => _wrapSelection('[', '](https://example.com)'),
+        onSave: _saveFile,
+        onOpen: _openFile,
+        onNewDocument: _newDocument,
+        onFind: _toggleFindReplace,
+        onTogglePreview: () => setState(() => _showPreview = !_showPreview),
+        onNextTab: _nextTab,
+        onPreviousTab: _previousTab,
+        onCloseTab: _closeActiveTab,
+        child: DropTarget(
+        onDragEntered: _onDragEntered,
+        onDragExited: _onDragExited,
+        onDragDone: _onDragDone,
+        child: Stack(
+          children: [
+            Column(
+              children: [
+                DocumentTabBar(
+            tabs: _tabs,
+            activeTabId: _activeTabId,
+            onTabSelected: _switchTab,
+            onTabClosed: _closeTab,
+            onNewTab: _newTab,
+          ),
           EditorToolbar(
             onBold: () => _wrapSelection('**', '**'),
             onItalic: () => _wrapSelection('*', '*'),
@@ -352,15 +561,22 @@ class _EditorScreenState extends State<EditorScreen> {
             onList: () => _prefixCurrentLine('- '),
             onCodeBlock: () => _insertBlock('```\ncode\n```\n'),
           ),
+          if (_showFindReplace)
+            FindReplaceBar(
+              controller: _activeTab.controller,
+              onClose: () => setState(() => _showFindReplace = false),
+            ),
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final compact = constraints.maxWidth < 760;
                 final editor = MarkdownTextEditor(
-                  controller: _controller,
-                  focusNode: _editorFocusNode,
+                  controller: _activeTab.controller,
+                  focusNode: _activeTab.focusNode,
                 );
-                final preview = MarkdownPreview(data: _controller.text);
+                final preview = MarkdownPreview(
+                  data: _activeTab.controller.text,
+                );
 
                 if (compact || !_showPreview) {
                   return _showPreview
@@ -378,14 +594,58 @@ class _EditorScreenState extends State<EditorScreen> {
               },
             ),
           ),
-          StatusBar(
-            stats: stats,
-            previewEnabled: _showPreview,
-            saveStatus: _saveStatus,
-            fileName: _currentFileName,
-          ),
-        ],
+                StatusBar(
+                  stats: stats,
+                  previewEnabled: _showPreview,
+                  saveStatus: _saveStatus,
+                  fileName: _activeTab.title,
+                ),
+              ],
+            ),
+            if (_isDragging)
+              Positioned.fill(
+                child: Container(
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.primary,
+                          width: 2,
+                          strokeAlign: BorderSide.strokeAlignInside,
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.insert_drive_file,
+                            size: 48,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Drop .md file to open',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
       ),
     );
   }
 }
+
+
+

@@ -1,35 +1,25 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+
+import 'highlighted_editor.dart';
 
 class MarkdownTextEditor extends StatelessWidget {
   const MarkdownTextEditor({
     super.key,
     required this.controller,
     required this.focusNode,
+    this.wordWrap = true,
   });
 
   final TextEditingController controller;
   final FocusNode focusNode;
+  final bool wordWrap;
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
+    return HighlightedMarkdownEditor(
       controller: controller,
       focusNode: focusNode,
-      expands: true,
-      maxLines: null,
-      minLines: null,
-      textAlignVertical: TextAlignVertical.top,
-      keyboardType: TextInputType.multiline,
-      decoration: const InputDecoration(
-        border: InputBorder.none,
-        contentPadding: EdgeInsets.all(18),
-        hintText: 'Write Markdown...',
-      ),
-      style: const TextStyle(
-        fontFamily: 'Consolas',
-        fontSize: 15,
-        height: 1.45,
-      ),
+      wordWrap: wordWrap,
     );
   }
 }
