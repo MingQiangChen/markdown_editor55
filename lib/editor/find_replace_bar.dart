@@ -75,15 +75,6 @@ class _FindReplaceBarState extends State<FindReplaceBar> {
     if (_currentMatchIndex < 0 || _matchIndices.isEmpty) return;
 
     final matchPos = _matchIndices[_currentMatchIndex];
-    final text = widget.controller.text;
-
-    // Count lines before the match to estimate scroll position.
-    final textBefore = text.substring(0, matchPos);
-    final lineNumber = '\n'.allMatches(textBefore).length;
-
-    // Estimate the character height (approximate).
-    const lineHeight = 21.8; // ~15px font * 1.45 line height
-    final scrollOffset = lineNumber * lineHeight - 100;
 
     // We can't directly scroll the HighlightedMarkdownEditor from here,
     // so we'll just select the match in the text field.
@@ -105,7 +96,8 @@ class _FindReplaceBarState extends State<FindReplaceBar> {
   void _findPrevious() {
     if (_matchIndices.isEmpty) return;
     setState(() {
-      _currentMatchIndex = (_currentMatchIndex - 1 + _matchIndices.length) %
+      _currentMatchIndex =
+          (_currentMatchIndex - 1 + _matchIndices.length) %
           _matchIndices.length;
     });
     _scrollToCurrentMatch();
@@ -135,8 +127,7 @@ class _FindReplaceBarState extends State<FindReplaceBar> {
       widget.controller.text = text.replaceAll(query, _replaceController.text);
     } else {
       final regex = RegExp(RegExp.escape(query), caseSensitive: false);
-      widget.controller.text =
-          text.replaceAll(regex, _replaceController.text);
+      widget.controller.text = text.replaceAll(regex, _replaceController.text);
     }
 
     _performFind();
@@ -166,10 +157,11 @@ class _FindReplaceBarState extends State<FindReplaceBar> {
                       hintText: 'Find...',
                       isDense: true,
                       border: const OutlineInputBorder(),
-                      suffixText: _matchIndices.isEmpty &&
-                              _findController.text.isNotEmpty
-                          ? 'No results'
-                          : _matchIndices.isNotEmpty
+                      suffixText:
+                          _matchIndices.isEmpty &&
+                                  _findController.text.isNotEmpty
+                              ? 'No results'
+                              : _matchIndices.isNotEmpty
                               ? '/'
                               : null,
                       contentPadding: const EdgeInsets.symmetric(
@@ -188,9 +180,10 @@ class _FindReplaceBarState extends State<FindReplaceBar> {
                     icon: Icon(
                       Icons.text_fields,
                       size: 18,
-                      color: _caseSensitive
-                          ? colorScheme.primary
-                          : colorScheme.onSurface.withValues(alpha: 0.5),
+                      color:
+                          _caseSensitive
+                              ? colorScheme.primary
+                              : colorScheme.onSurface.withValues(alpha: 0.5),
                     ),
                     onPressed: () {
                       setState(() => _caseSensitive = !_caseSensitive);
@@ -216,9 +209,7 @@ class _FindReplaceBarState extends State<FindReplaceBar> {
                   message: _showReplace ? 'Hide replace' : 'Show replace',
                   child: IconButton(
                     icon: Icon(
-                      _showReplace
-                          ? Icons.unfold_less
-                          : Icons.expand_more,
+                      _showReplace ? Icons.unfold_less : Icons.expand_more,
                       size: 18,
                     ),
                     onPressed: () {
@@ -266,8 +257,10 @@ class _FindReplaceBarState extends State<FindReplaceBar> {
                     Tooltip(
                       message: 'Replace all',
                       child: IconButton(
-                        icon:
-                            const Icon(Icons.change_circle_outlined, size: 18),
+                        icon: const Icon(
+                          Icons.change_circle_outlined,
+                          size: 18,
+                        ),
                         onPressed: _replaceAll,
                       ),
                     ),

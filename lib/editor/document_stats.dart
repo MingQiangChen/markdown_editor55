@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+enum ViewMode { editorOnly, split, previewOnly }
+
 class DocumentStats {
   const DocumentStats({required this.words, required this.characters});
 
@@ -23,18 +25,26 @@ class StatusBar extends StatelessWidget {
   const StatusBar({
     super.key,
     required this.stats,
-    required this.previewEnabled,
+    required this.viewMode,
+    required this.wordWrap,
     required this.saveStatus,
     this.fileName,
   });
 
   final DocumentStats stats;
-  final bool previewEnabled;
+  final ViewMode viewMode;
+  final bool wordWrap;
   final String saveStatus;
   final String? fileName;
 
   @override
   Widget build(BuildContext context) {
+    final viewModeText = switch (viewMode) {
+      ViewMode.editorOnly => 'Edit only',
+      ViewMode.split => 'Edit + preview',
+      ViewMode.previewOnly => 'Preview only',
+    };
+
     return Material(
       color: Theme.of(context).colorScheme.surfaceContainerHighest,
       child: SizedBox(
@@ -58,15 +68,37 @@ class StatusBar extends StatelessWidget {
               Text('${stats.characters} characters'),
               const SizedBox(width: 16),
               Expanded(
-                child: Text(
-                  saveStatus,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.right,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        saveStatus,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Flexible(
+                      child: Text(
+                        viewModeText,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text('·'),
+                    const SizedBox(width: 12),
+                    Flexible(
+                      child: Text(
+                        wordWrap ? 'Wrap' : 'No wrap',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 16),
-              Text(previewEnabled ? 'Edit + preview' : 'Edit only'),
             ],
           ),
         ),

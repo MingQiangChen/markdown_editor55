@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// Defines keyboard shortcuts for the markdown editor.
@@ -44,36 +44,50 @@ class EditorShortcuts extends StatelessWidget {
       autofocus: true,
       child: Shortcuts(
         shortcuts: <ShortcutActivator, Intent>{
-          const SingleActivator(LogicalKeyboardKey.keyB, control: true):
-              const FormatIntent(FormatType.bold),
-          const SingleActivator(LogicalKeyboardKey.keyI, control: true):
-              const FormatIntent(FormatType.italic),
-          const SingleActivator(LogicalKeyboardKey.backquote, control: true):
-              const FormatIntent(FormatType.code),
-          const SingleActivator(LogicalKeyboardKey.keyK, control: true):
-              const FormatIntent(FormatType.link),
-          const SingleActivator(LogicalKeyboardKey.keyS, control: true):
-              const FileOperationIntent(FileOperationType.save),
-          const SingleActivator(LogicalKeyboardKey.keyO, control: true):
-              const FileOperationIntent(FileOperationType.open),
-          const SingleActivator(LogicalKeyboardKey.keyN, control: true):
-              const FileOperationIntent(FileOperationType.newDocument),
+          const SingleActivator(
+            LogicalKeyboardKey.keyB,
+            control: true,
+          ): const FormatIntent(FormatType.bold),
+          const SingleActivator(
+            LogicalKeyboardKey.keyI,
+            control: true,
+          ): const FormatIntent(FormatType.italic),
+          const SingleActivator(
+            LogicalKeyboardKey.backquote,
+            control: true,
+          ): const FormatIntent(FormatType.code),
+          const SingleActivator(
+            LogicalKeyboardKey.keyK,
+            control: true,
+          ): const FormatIntent(FormatType.link),
+          const SingleActivator(
+            LogicalKeyboardKey.keyS,
+            control: true,
+          ): const FileOperationIntent(FileOperationType.save),
+          const SingleActivator(
+            LogicalKeyboardKey.keyO,
+            control: true,
+          ): const FileOperationIntent(FileOperationType.open),
+          const SingleActivator(
+            LogicalKeyboardKey.keyN,
+            control: true,
+          ): const FileOperationIntent(FileOperationType.newDocument),
           const SingleActivator(LogicalKeyboardKey.keyF, control: true):
               const FindIntent(),
           const SingleActivator(
-            LogicalKeyboardKey.keyP,
-            control: true,
-            shift: true,
-          ): const TogglePreviewIntent(),
+                LogicalKeyboardKey.keyP,
+                control: true,
+                shift: true,
+              ):
+              const TogglePreviewIntent(),
           const SingleActivator(
-            LogicalKeyboardKey.keyV,
-            control: true,
-            shift: true,
-          ): const CycleViewModeIntent(),
-          const SingleActivator(
-            LogicalKeyboardKey.keyZ,
-            alt: true,
-          ): const ToggleWordWrapIntent(),
+                LogicalKeyboardKey.keyV,
+                control: true,
+                shift: true,
+              ):
+              const CycleViewModeIntent(),
+          const SingleActivator(LogicalKeyboardKey.keyZ, alt: true):
+              const ToggleWordWrapIntent(),
           const SingleActivator(
             LogicalKeyboardKey.tab,
             control: true,
@@ -83,10 +97,8 @@ class EditorShortcuts extends StatelessWidget {
             control: true,
             shift: true,
           ): const TabNavigationIntent(TabDirection.previous),
-          const SingleActivator(
-            LogicalKeyboardKey.keyW,
-            control: true,
-          ): const CloseTabIntent(),
+          const SingleActivator(LogicalKeyboardKey.keyW, control: true):
+              const CloseTabIntent(),
         },
         child: Actions(
           actions: <Type, Action<Intent>>{

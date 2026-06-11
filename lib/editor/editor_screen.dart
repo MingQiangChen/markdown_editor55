@@ -39,7 +39,8 @@ class _EditorScreenState extends State<EditorScreen> {
   String _activeTabId = '';
   int _tabCounter = 0;
   Timer? _saveTimer;
-  bool _showPreview = true;
+  ViewMode _viewMode = ViewMode.split;
+  bool _wordWrap = true;
   String _saveStatus = 'Saved';
   List<RecentDocument> _recentDocs = [];
   bool _isDragging = false;
@@ -51,7 +52,6 @@ class _EditorScreenState extends State<EditorScreen> {
   @override
   void initState() {
     super.initState();
-    // Create the first tab with the initial draft content.
     final firstTab = DocumentTab.empty(id: _nextTabId());
     firstTab.controller.text = widget.initialMarkdown;
     firstTab.controller.addListener(_handleDocumentChanged);
@@ -112,6 +112,20 @@ class _EditorScreenState extends State<EditorScreen> {
     setState(() => _showFindReplace = !_showFindReplace);
   }
 
+  void _cycleViewMode() {
+    setState(() {
+      _viewMode = switch (_viewMode) {
+        ViewMode.editorOnly => ViewMode.split,
+        ViewMode.split => ViewMode.previewOnly,
+        ViewMode.previewOnly => ViewMode.editorOnly,
+      };
+    });
+  }
+
+  void _toggleWordWrap() {
+    setState(() => _wordWrap = !_wordWrap);
+  }
+
   void _nextTab() {
     final currentIndex = _tabs.indexWhere((t) => t.id == _activeTabId);
     if (currentIndex == -1) return;
@@ -136,15 +150,12 @@ class _EditorScreenState extends State<EditorScreen> {
 
     final tab = _tabs[tabIndex];
 
-    // If the tab is dirty, ask for confirmation.
     if (tab.isDirty && tab.controller.text.isNotEmpty) {
       final confirmed = await _confirmCloseUnsaved(tab.title);
       if (!confirmed) return;
     }
 
-    // Don't allow closing the last tab.
     if (_tabs.length == 1) {
-      // Reset the tab instead of closing it.
       tab.controller.clear();
       tab.title = 'Untitled';
       tab.filePath = null;
@@ -153,7 +164,6 @@ class _EditorScreenState extends State<EditorScreen> {
       return;
     }
 
-    // Determine new active tab.
     String? newActiveId;
     if (_activeTabId == tabId) {
       if (tabIndex > 0) {
@@ -270,7 +280,6 @@ class _EditorScreenState extends State<EditorScreen> {
     }
   }
 
-  /// Opens a file by path (used by drag-and-drop).
   Future<void> openFilePath(String path) async {
     try {
       final result = await widget.fileService.openFilePath(path);
@@ -312,8 +321,8 @@ class _EditorScreenState extends State<EditorScreen> {
       _activeTab.controller.text,
       title: _activeTab.title,
     );
-    final defaultName =
-        (_activeTab.title).replaceAll(RegExp(r'\.md$'), '') + '.html';
+    final titleWithoutExt = _activeTab.title.replaceAll(RegExp(r'\.md$'), '');
+    final defaultName = '$titleWithoutExt.html';
     try {
       final path = await widget.fileService.exportFile(
         html,
@@ -401,7 +410,6 @@ class _EditorScreenState extends State<EditorScreen> {
     _activeTab.focusNode.requestFocus();
   }
 
-
   void _onDragEntered(_) {
     setState(() => _isDragging = true);
   }
@@ -415,7 +423,7 @@ class _EditorScreenState extends State<EditorScreen> {
     for (final file in message.files) {
       if (file.path.toLowerCase().endsWith('.md')) {
         await openFilePath(file.path);
-        break; // Only open the first .md file.
+        break;
       }
     }
   }
@@ -470,36 +478,18 @@ class _EditorScreenState extends State<EditorScreen> {
             message: 'Recent files',
             child: PopupMenuButton<RecentDocument>(
               icon: const Icon(Icons.history),
-              enabled: _recentDocs.isNotEmpty,
               onSelected: _openRecent,
-              itemBuilder:
-                  (context) =>
-                      _recentDocs.map((doc) {
-                        return PopupMenuItem<RecentDocument>(
-                          value: doc,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                doc.name,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              Text(
-                                doc.path,
-                                style: Theme.of(context).textTheme.bodySmall,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
+              itemBuilder: (context) => [
+                for (final doc in _recentDocs)
+                  PopupMenuItem<RecentDocument>(
+                    value: doc,
+                    child: Text(doc.name),
+                  ),
+              ],
             ),
           ),
           Tooltip(
-            message: 'Find and replace (Ctrl+F)',
+            message: 'Find and replace',
             child: IconButton(
               icon: const Icon(Icons.search),
               onPressed: _toggleFindReplace,
@@ -508,17 +498,34 @@ class _EditorScreenState extends State<EditorScreen> {
           Tooltip(
             message: 'New document',
             child: IconButton(
-              icon: const Icon(Icons.note_add),
+              icon: const Icon(Icons.add),
               onPressed: _newDocument,
             ),
           ),
           Tooltip(
-            message: _showPreview ? 'Hide preview' : 'Show preview',
+            message: switch (_viewMode) {
+              ViewMode.editorOnly => 'Editor only',
+              ViewMode.split => 'Split view',
+              ViewMode.previewOnly => 'Preview only',
+            },
             child: IconButton(
               icon: Icon(
-                _showPreview ? Icons.visibility : Icons.visibility_off,
+                switch (_viewMode) {
+                  ViewMode.editorOnly => Icons.edit,
+                  ViewMode.split => Icons.view_column,
+                  ViewMode.previewOnly => Icons.visibility,
+                },
               ),
-              onPressed: () => setState(() => _showPreview = !_showPreview),
+              onPressed: _cycleViewMode,
+            ),
+          ),
+          Tooltip(
+            message: _wordWrap ? 'Word wrap: on' : 'Word wrap: off',
+            child: IconButton(
+              icon: Icon(
+                _wordWrap ? Icons.wrap_text : Icons.text_format,
+              ),
+              onPressed: _toggleWordWrap,
             ),
           ),
         ],
@@ -526,126 +533,129 @@ class _EditorScreenState extends State<EditorScreen> {
       body: EditorShortcuts(
         onBold: () => _wrapSelection('**', '**'),
         onItalic: () => _wrapSelection('*', '*'),
-        onCode: () => _wrapSelection('', ''),
+        onCode: () => _wrapSelection('`', '`'),
         onLink: () => _wrapSelection('[', '](https://example.com)'),
         onSave: _saveFile,
         onOpen: _openFile,
         onNewDocument: _newDocument,
         onFind: _toggleFindReplace,
-        onTogglePreview: () => setState(() => _showPreview = !_showPreview),
+        onTogglePreview: () => setState(() {
+          _viewMode = _viewMode == ViewMode.split ? ViewMode.editorOnly : ViewMode.split;
+        }),
+        onCycleViewMode: _cycleViewMode,
+        onToggleWordWrap: _toggleWordWrap,
         onNextTab: _nextTab,
         onPreviousTab: _previousTab,
         onCloseTab: _closeActiveTab,
         child: DropTarget(
-        onDragEntered: _onDragEntered,
-        onDragExited: _onDragExited,
-        onDragDone: _onDragDone,
-        child: Stack(
-          children: [
-            Column(
-              children: [
-                DocumentTabBar(
-            tabs: _tabs,
-            activeTabId: _activeTabId,
-            onTabSelected: _switchTab,
-            onTabClosed: _closeTab,
-            onNewTab: _newTab,
-          ),
-          EditorToolbar(
-            onBold: () => _wrapSelection('**', '**'),
-            onItalic: () => _wrapSelection('*', '*'),
-            onCode: () => _wrapSelection('`', '`'),
-            onLink: () => _wrapSelection('[', '](https://example.com)'),
-            onHeading: () => _prefixCurrentLine('## '),
-            onQuote: () => _prefixCurrentLine('> '),
-            onList: () => _prefixCurrentLine('- '),
-            onCodeBlock: () => _insertBlock('```\ncode\n```\n'),
-          ),
-          if (_showFindReplace)
-            FindReplaceBar(
-              controller: _activeTab.controller,
-              onClose: () => setState(() => _showFindReplace = false),
-            ),
-          Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final compact = constraints.maxWidth < 760;
-                final editor = MarkdownTextEditor(
-                  controller: _activeTab.controller,
-                  focusNode: _activeTab.focusNode,
-                );
-                final preview = MarkdownPreview(
-                  data: _activeTab.controller.text,
-                );
+          onDragEntered: _onDragEntered,
+          onDragExited: _onDragExited,
+          onDragDone: _onDragDone,
+          child: Stack(
+            children: [
+              Column(
+                children: [
+                  DocumentTabBar(
+                    tabs: _tabs,
+                    activeTabId: _activeTabId,
+                    onTabSelected: _switchTab,
+                    onTabClosed: _closeTab,
+                    onNewTab: _newTab,
+                  ),
+                  EditorToolbar(
+                    onBold: () => _wrapSelection('**', '**'),
+                    onItalic: () => _wrapSelection('*', '*'),
+                    onCode: () => _wrapSelection('`', '`'),
+                    onLink: () => _wrapSelection('[', '](https://example.com)'),
+                    onHeading: () => _prefixCurrentLine('## '),
+                    onQuote: () => _prefixCurrentLine('> '),
+                    onList: () => _prefixCurrentLine('- '),
+                    onCodeBlock: () => _insertBlock('```\ncode\n```\n'),
+                  ),
+                  if (_showFindReplace)
+                    FindReplaceBar(
+                      controller: _activeTab.controller,
+                      onClose: () => setState(() => _showFindReplace = false),
+                    ),
+                  Expanded(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final compact = constraints.maxWidth < 760;
+                        final editor = MarkdownTextEditor(
+                          controller: _activeTab.controller,
+                          focusNode: _activeTab.focusNode,
+                          wordWrap: _wordWrap,
+                        );
+                        final preview = MarkdownPreview(
+                          data: _activeTab.controller.text,
+                        );
 
-                if (compact || !_showPreview) {
-                  return _showPreview
-                      ? PageView(children: [editor, preview])
-                      : editor;
-                }
-
-                return Row(
-                  children: [
-                    Expanded(child: editor),
-                    const VerticalDivider(width: 1),
-                    Expanded(child: preview),
-                  ],
-                );
-              },
-            ),
-          ),
-                StatusBar(
-                  stats: stats,
-                  previewEnabled: _showPreview,
-                  saveStatus: _saveStatus,
-                  fileName: _activeTab.title,
-                ),
-              ],
-            ),
-            if (_isDragging)
-              Positioned.fill(
-                child: Container(
-                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                  child: Center(
-                    child: Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surface,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Theme.of(context).colorScheme.primary,
-                          width: 2,
-                          strokeAlign: BorderSide.strokeAlignInside,
-                        ),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.insert_drive_file,
-                            size: 48,
-                            color: Theme.of(context).colorScheme.primary,
+                        return switch (_viewMode) {
+                          ViewMode.editorOnly => editor,
+                          ViewMode.split when compact =>
+                            PageView(children: [editor, preview]),
+                          ViewMode.split => Row(
+                            children: [
+                              Expanded(child: editor),
+                              const VerticalDivider(width: 1),
+                              Expanded(child: preview),
+                            ],
                           ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'Drop .md file to open',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          ViewMode.previewOnly => preview,
+                        };
+                      },
+                    ),
+                  ),
+                  StatusBar(
+                    stats: stats,
+                    viewMode: _viewMode,
+                    wordWrap: _wordWrap,
+                    saveStatus: _saveStatus,
+                    fileName: _activeTab.title,
+                  ),
+                ],
+              ),
+              if (_isDragging)
+                Positioned.fill(
+                  child: Container(
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surface,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Theme.of(context).colorScheme.primary,
+                            width: 2,
+                            strokeAlign: BorderSide.strokeAlignInside,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.insert_drive_file,
+                              size: 48,
                               color: Theme.of(context).colorScheme.primary,
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 12),
+                            Text(
+                              'Drop .md file to open',
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
-      ),
       ),
     );
   }
 }
-
-
-

@@ -18,6 +18,8 @@ QLaw Markdown 是一个本地优先的 Markdown 编辑器。它可以编辑 Mark
 - 外部文件变更检测
 - 响应式布局
 - 深色和浅色主题
+- 视图模式切换（编辑/分屏/预览）
+- 自动换行开关
 - 键盘快捷键
 
 ## 打开项目
@@ -94,6 +96,8 @@ flutter run -d windows
 | 快捷键 | 行为 |
 | --- | --- |
 | `Ctrl+Shift+P` | 切换预览显示 |
+| `Ctrl+Shift+V` | 循环切换视图模式（编辑/分屏/预览） |
+| `Alt+Z` | 切换自动换行 |
 
 #### 标签页
 | 快捷键 | 行为 |
@@ -123,14 +127,15 @@ flutter run -d windows
 | Recent | 打开最近文件列表 |
 | Find | 打开查找和替换栏 |
 | New | 新建文档 |
-| Preview | 显示或隐藏预览 |
+| View Mode | 循环切换视图模式（编辑/分屏/预览） |
+| Word Wrap | 切换自动换行 |
 
 ### 状态栏
 
 状态栏显示文件名、字数、字符数、保存状态和预览模式。
 示例：
 `	ext
-filename.md · 150 words · 1200 characters · Saved · Edit + preview
+filename.md · 150 words · 1200 characters · Saved · Edit + preview · Wrap
 `
 
 ## 文件操作

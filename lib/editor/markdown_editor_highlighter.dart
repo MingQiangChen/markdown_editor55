@@ -5,7 +5,11 @@
 /// All returned spans share the same [baseStyle] metrics (font family, size,
 /// height, weight) so the highlighted text aligns perfectly with a transparent
 /// [TextField] overlay.
-TextSpan highlightMarkdown(String text, TextStyle baseStyle, ColorScheme colorScheme) {
+TextSpan highlightMarkdown(
+  String text,
+  TextStyle baseStyle,
+  ColorScheme colorScheme,
+) {
   if (text.isEmpty) {
     return TextSpan(text: '', style: baseStyle);
   }
@@ -18,11 +22,9 @@ TextSpan highlightMarkdown(String text, TextStyle baseStyle, ColorScheme colorSc
   final metaColor = colorScheme.onSurface.withValues(alpha: 0.45);
   final codeColor = colorScheme.tertiary;
   final codeBackground = colorScheme.surfaceContainerHighest;
-  final linkColor = colorScheme.primary;
   final quoteColor = colorScheme.secondary;
   final listMarkerColor = colorScheme.primary;
   final hrColor = colorScheme.onSurface.withValues(alpha: 0.35);
-  final taskDoneColor = colorScheme.primary;
 
   for (var i = 0; i < lines.length; i++) {
     final line = lines[i];
@@ -30,29 +32,35 @@ TextSpan highlightMarkdown(String text, TextStyle baseStyle, ColorScheme colorSc
     // Fenced code block delimiters.
     if (line.trimLeft().startsWith('```')) {
       inCodeBlock = !inCodeBlock;
-      rootChildren.add(TextSpan(
-        text: line,
-        style: baseStyle.copyWith(color: metaColor),
-      ));
+      rootChildren.add(
+        TextSpan(text: line, style: baseStyle.copyWith(color: metaColor)),
+      );
     } else if (inCodeBlock) {
-      rootChildren.add(TextSpan(
-        text: line,
-        style: baseStyle.copyWith(
-          color: codeColor,
-          background: Paint()..color = codeBackground.withValues(alpha: 0.3),
+      rootChildren.add(
+        TextSpan(
+          text: line,
+          style: baseStyle.copyWith(
+            color: codeColor,
+            background: Paint()..color = codeBackground.withValues(alpha: 0.3),
+          ),
         ),
-      ));
+      );
     } else if (_isHorizontalRule(line)) {
-      rootChildren.add(TextSpan(
-        text: line,
-        style: baseStyle.copyWith(color: hrColor),
-      ));
+      rootChildren.add(
+        TextSpan(text: line, style: baseStyle.copyWith(color: hrColor)),
+      );
     } else if (line.startsWith('#')) {
-      rootChildren.add(_highlightHeading(line, baseStyle, headingColor, metaColor));
+      rootChildren.add(
+        _highlightHeading(line, baseStyle, headingColor, metaColor),
+      );
     } else if (line.startsWith('>')) {
-      rootChildren.add(_highlightBlockquote(line, baseStyle, quoteColor, colorScheme));
+      rootChildren.add(
+        _highlightBlockquote(line, baseStyle, quoteColor, colorScheme),
+      );
     } else if (_isListItem(line)) {
-      rootChildren.add(_highlightListItem(line, baseStyle, listMarkerColor, colorScheme));
+      rootChildren.add(
+        _highlightListItem(line, baseStyle, listMarkerColor, colorScheme),
+      );
     } else {
       rootChildren.add(_highlightInline(line, baseStyle, colorScheme));
     }
@@ -129,7 +137,10 @@ TextSpan _highlightBlockquote(
   return TextSpan(
     style: baseStyle,
     children: [
-      TextSpan(text: match.group(1)!, style: baseStyle.copyWith(color: quoteColor)),
+      TextSpan(
+        text: match.group(1)!,
+        style: baseStyle.copyWith(color: quoteColor),
+      ),
       _highlightInline(match.group(2)!, baseStyle, colorScheme),
     ],
   );
@@ -161,10 +172,17 @@ TextSpan _highlightListItem(
   if (taskMatch != null) {
     final checkbox = '[${taskMatch.group(1)!}]';
     final isDone = taskMatch.group(1)!.toLowerCase() == 'x';
-    children.add(TextSpan(
-      text: checkbox,
-      style: baseStyle.copyWith(color: isDone ? markerColor : colorScheme.onSurface.withValues(alpha: 0.5)),
-    ));
+    children.add(
+      TextSpan(
+        text: checkbox,
+        style: baseStyle.copyWith(
+          color:
+              isDone
+                  ? markerColor
+                  : colorScheme.onSurface.withValues(alpha: 0.5),
+        ),
+      ),
+    );
     children.add(TextSpan(text: ' ', style: baseStyle));
     children.add(_highlightInline(taskMatch.group(2)!, baseStyle, colorScheme));
   } else {
@@ -175,7 +193,11 @@ TextSpan _highlightListItem(
 }
 
 /// Highlights inline Markdown: bold, italic, inline code, links, images.
-TextSpan _highlightInline(String text, TextStyle baseStyle, ColorScheme colorScheme) {
+TextSpan _highlightInline(
+  String text,
+  TextStyle baseStyle,
+  ColorScheme colorScheme,
+) {
   final spans = <TextSpan>[];
   final buffer = StringBuffer();
   var i = 0;
@@ -199,15 +221,22 @@ TextSpan _highlightInline(String text, TextStyle baseStyle, ColorScheme colorSch
       final end = text.indexOf('`', i + 1);
       if (end != -1) {
         flush();
-        spans.add(TextSpan(text: '`', style: baseStyle.copyWith(color: metaColor)));
-        spans.add(TextSpan(
-          text: text.substring(i + 1, end),
-          style: baseStyle.copyWith(
-            color: codeColor,
-            background: Paint()..color = codeBackground.withValues(alpha: 0.5),
+        spans.add(
+          TextSpan(text: '`', style: baseStyle.copyWith(color: metaColor)),
+        );
+        spans.add(
+          TextSpan(
+            text: text.substring(i + 1, end),
+            style: baseStyle.copyWith(
+              color: codeColor,
+              background:
+                  Paint()..color = codeBackground.withValues(alpha: 0.5),
+            ),
           ),
-        ));
-        spans.add(TextSpan(text: '`', style: baseStyle.copyWith(color: metaColor)));
+        );
+        spans.add(
+          TextSpan(text: '`', style: baseStyle.copyWith(color: metaColor)),
+        );
         i = end + 1;
         continue;
       }
@@ -216,15 +245,33 @@ TextSpan _highlightInline(String text, TextStyle baseStyle, ColorScheme colorSch
     // Image: ![alt](url)
     if (text[i] == '!' && i + 1 < text.length && text[i + 1] == '[') {
       final closeBracket = text.indexOf(']', i + 2);
-      if (closeBracket != -1 && closeBracket + 1 < text.length && text[closeBracket + 1] == '(') {
+      if (closeBracket != -1 &&
+          closeBracket + 1 < text.length &&
+          text[closeBracket + 1] == '(') {
         final closeParen = text.indexOf(')', closeBracket + 2);
         if (closeParen != -1) {
           flush();
-          spans.add(TextSpan(text: '![', style: baseStyle.copyWith(color: metaColor)));
-          spans.add(TextSpan(text: text.substring(i + 2, closeBracket), style: baseStyle.copyWith(color: linkColor)));
-          spans.add(TextSpan(text: '](', style: baseStyle.copyWith(color: metaColor)));
-          spans.add(TextSpan(text: text.substring(closeBracket + 2, closeParen), style: baseStyle.copyWith(color: metaColor)));
-          spans.add(TextSpan(text: ')', style: baseStyle.copyWith(color: metaColor)));
+          spans.add(
+            TextSpan(text: '![', style: baseStyle.copyWith(color: metaColor)),
+          );
+          spans.add(
+            TextSpan(
+              text: text.substring(i + 2, closeBracket),
+              style: baseStyle.copyWith(color: linkColor),
+            ),
+          );
+          spans.add(
+            TextSpan(text: '](', style: baseStyle.copyWith(color: metaColor)),
+          );
+          spans.add(
+            TextSpan(
+              text: text.substring(closeBracket + 2, closeParen),
+              style: baseStyle.copyWith(color: metaColor),
+            ),
+          );
+          spans.add(
+            TextSpan(text: ')', style: baseStyle.copyWith(color: metaColor)),
+          );
           i = closeParen + 1;
           continue;
         }
@@ -234,15 +281,33 @@ TextSpan _highlightInline(String text, TextStyle baseStyle, ColorScheme colorSch
     // Link: [text](url)
     if (text[i] == '[') {
       final closeBracket = text.indexOf(']', i + 1);
-      if (closeBracket != -1 && closeBracket + 1 < text.length && text[closeBracket + 1] == '(') {
+      if (closeBracket != -1 &&
+          closeBracket + 1 < text.length &&
+          text[closeBracket + 1] == '(') {
         final closeParen = text.indexOf(')', closeBracket + 2);
         if (closeParen != -1) {
           flush();
-          spans.add(TextSpan(text: '[', style: baseStyle.copyWith(color: metaColor)));
-          spans.add(TextSpan(text: text.substring(i + 1, closeBracket), style: baseStyle.copyWith(color: linkColor)));
-          spans.add(TextSpan(text: '](', style: baseStyle.copyWith(color: metaColor)));
-          spans.add(TextSpan(text: text.substring(closeBracket + 2, closeParen), style: baseStyle.copyWith(color: metaColor)));
-          spans.add(TextSpan(text: ')', style: baseStyle.copyWith(color: metaColor)));
+          spans.add(
+            TextSpan(text: '[', style: baseStyle.copyWith(color: metaColor)),
+          );
+          spans.add(
+            TextSpan(
+              text: text.substring(i + 1, closeBracket),
+              style: baseStyle.copyWith(color: linkColor),
+            ),
+          );
+          spans.add(
+            TextSpan(text: '](', style: baseStyle.copyWith(color: metaColor)),
+          );
+          spans.add(
+            TextSpan(
+              text: text.substring(closeBracket + 2, closeParen),
+              style: baseStyle.copyWith(color: metaColor),
+            ),
+          );
+          spans.add(
+            TextSpan(text: ')', style: baseStyle.copyWith(color: metaColor)),
+          );
           i = closeParen + 1;
           continue;
         }
@@ -254,9 +319,18 @@ TextSpan _highlightInline(String text, TextStyle baseStyle, ColorScheme colorSch
       final end = text.indexOf('**', i + 2);
       if (end != -1) {
         flush();
-        spans.add(TextSpan(text: '**', style: baseStyle.copyWith(color: metaColor)));
-        spans.add(TextSpan(text: text.substring(i + 2, end), style: baseStyle.copyWith(color: emphasisColor)));
-        spans.add(TextSpan(text: '**', style: baseStyle.copyWith(color: metaColor)));
+        spans.add(
+          TextSpan(text: '**', style: baseStyle.copyWith(color: metaColor)),
+        );
+        spans.add(
+          TextSpan(
+            text: text.substring(i + 2, end),
+            style: baseStyle.copyWith(color: emphasisColor),
+          ),
+        );
+        spans.add(
+          TextSpan(text: '**', style: baseStyle.copyWith(color: metaColor)),
+        );
         i = end + 2;
         continue;
       }
@@ -267,9 +341,18 @@ TextSpan _highlightInline(String text, TextStyle baseStyle, ColorScheme colorSch
       final end = text.indexOf('*', i + 1);
       if (end != -1 && end > i + 1) {
         flush();
-        spans.add(TextSpan(text: '*', style: baseStyle.copyWith(color: metaColor)));
-        spans.add(TextSpan(text: text.substring(i + 1, end), style: baseStyle.copyWith(color: emphasisColor)));
-        spans.add(TextSpan(text: '*', style: baseStyle.copyWith(color: metaColor)));
+        spans.add(
+          TextSpan(text: '*', style: baseStyle.copyWith(color: metaColor)),
+        );
+        spans.add(
+          TextSpan(
+            text: text.substring(i + 1, end),
+            style: baseStyle.copyWith(color: emphasisColor),
+          ),
+        );
+        spans.add(
+          TextSpan(text: '*', style: baseStyle.copyWith(color: metaColor)),
+        );
         i = end + 1;
         continue;
       }

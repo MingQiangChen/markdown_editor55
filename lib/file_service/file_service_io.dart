@@ -49,7 +49,7 @@ class _IoFileService implements FileService {
   Future<String?> saveFileAs(String content) async {
     // Windows 上禁用 lockParentWindow，避免无法输入文件名的问题
     final bool lockParent = !Platform.isWindows;
-    
+
     final path = await FilePicker.platform.saveFile(
       dialogTitle: 'Save Markdown File',
       type: FileType.custom,
@@ -78,7 +78,7 @@ class _IoFileService implements FileService {
   ) async {
     // Windows 上禁用 lockParentWindow，避免无法输入文件名的问题
     final bool lockParent = !Platform.isWindows;
-    
+
     final path = await FilePicker.platform.saveFile(
       dialogTitle: 'Export File',
       type: FileType.custom,

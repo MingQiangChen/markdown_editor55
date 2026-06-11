@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import 'document_tab.dart';
 
@@ -116,9 +116,10 @@ class _TabItem extends StatelessWidget {
             Icon(
               Icons.description_outlined,
               size: 15,
-              color: isActive
-                  ? colorScheme.primary
-                  : colorScheme.onSurface.withValues(alpha: 0.5),
+              color:
+                  isActive
+                      ? colorScheme.primary
+                      : colorScheme.onSurface.withValues(alpha: 0.5),
             ),
             const SizedBox(width: 6),
             Expanded(
@@ -128,9 +129,10 @@ class _TabItem extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-                  color: isActive
-                      ? colorScheme.onSurface
-                      : colorScheme.onSurface.withValues(alpha: 0.7),
+                  color:
+                      isActive
+                          ? colorScheme.onSurface
+                          : colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
               ),
             ),

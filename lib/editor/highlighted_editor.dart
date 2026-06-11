@@ -63,21 +63,25 @@ class _HighlightedMarkdownEditorState extends State<HighlightedMarkdownEditor> {
 
     final highlighted = highlightMarkdown(_text, baseStyle, colorScheme);
 
-    Widget editor = SingleChildScrollView(
+    return SingleChildScrollView(
       controller: _scrollController,
       child: Stack(
         children: [
+          // Background: syntax-highlighted text (not interactive).
           IgnorePointer(
             child: Padding(
               padding: _contentPadding,
               child: Text.rich(highlighted),
             ),
           ),
+          // Foreground: transparent editable text field.
+          // Note: no expands:true — inside SingleChildScrollView the vertical
+          // constraint is unbounded, so expands would crash ("hasSize" assert).
+          // maxLines:null lets the field grow naturally with content.
           TextField(
             controller: widget.controller,
             focusNode: widget.focusNode,
             scrollController: _scrollController,
-            expands: true,
             maxLines: null,
             minLines: null,
             textAlignVertical: TextAlignVertical.top,
@@ -96,17 +100,5 @@ class _HighlightedMarkdownEditorState extends State<HighlightedMarkdownEditor> {
         ],
       ),
     );
-
-    if (!widget.wordWrap) {
-      editor = SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: SizedBox(
-          width: 10000,
-          child: editor,
-        ),
-      );
-    }
-
-    return editor;
   }
 }

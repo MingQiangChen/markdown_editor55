@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:markdown_editor/file_service/file_service.dart';
@@ -7,7 +7,7 @@ import 'package:markdown_editor/recent_store/recent_store.dart';
 import 'package:markdown_editor/storage/document_store.dart';
 
 void main() {
-  testWidgets('editor renders initial document and toggles preview', (
+  testWidgets('editor renders initial document and cycles view mode', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -30,12 +30,50 @@ void main() {
     expect(find.byIcon(Icons.save), findsOneWidget);
     expect(find.byIcon(Icons.history), findsOneWidget);
     expect(find.text('Edit + preview'), findsOneWidget);
+    expect(find.text('Wrap'), findsOneWidget);
 
+    // Cycle to preview only.
+    await tester.tap(find.byIcon(Icons.view_column));
+    await tester.pump();
+    expect(find.text('Preview only'), findsOneWidget);
+    expect(find.byIcon(Icons.visibility), findsOneWidget);
+
+    // Cycle to editor only.
     await tester.tap(find.byIcon(Icons.visibility));
     await tester.pump();
-
     expect(find.text('Edit only'), findsOneWidget);
-    expect(find.byIcon(Icons.visibility_off), findsOneWidget);
+    expect(find.byIcon(Icons.edit), findsOneWidget);
+
+    // Cycle back to split.
+    await tester.tap(find.byIcon(Icons.edit));
+    await tester.pump();
+    expect(find.text('Edit + preview'), findsOneWidget);
+  });
+
+  testWidgets('toggle word wrap', (tester) async {
+    await tester.pumpWidget(
+      MarkdownEditorApp(
+        documentStore: _FakeDocumentStore(),
+        fileService: _FakeFileService(),
+        recentStore: _FakeRecentStore(),
+        initialMarkdown: '# Draft',
+      ),
+    );
+
+    expect(find.text('Wrap'), findsOneWidget);
+    expect(find.byIcon(Icons.wrap_text), findsOneWidget);
+
+    // Toggle word wrap off.
+    await tester.tap(find.byIcon(Icons.wrap_text));
+    await tester.pump();
+    expect(find.text('No wrap'), findsOneWidget);
+    expect(find.byIcon(Icons.text_format), findsOneWidget);
+
+    // Toggle word wrap on.
+    await tester.tap(find.byIcon(Icons.text_format));
+    await tester.pump();
+    expect(find.text('Wrap'), findsOneWidget);
+    expect(find.byIcon(Icons.wrap_text), findsOneWidget);
   });
 
   testWidgets('save cancellation is shown in the status bar', (tester) async {
@@ -88,12 +126,12 @@ void main() {
         initialMarkdown: '# Draft',
       ),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byIcon(Icons.history));
     await tester.pumpAndSettle();
     await tester.tap(find.text('missing.md').first);
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(find.text('File not found'), findsOneWidget);
   });
