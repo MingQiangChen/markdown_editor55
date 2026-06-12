@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../export/css_templates.dart';
 
@@ -53,7 +53,7 @@ class _ExportOptionsDialogState extends State<_ExportOptionsDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Export Options'),
+      title: const Text('导出选项'),
       content: SizedBox(
         width: 400,
         child: Column(
@@ -84,7 +84,7 @@ class _ExportOptionsDialogState extends State<_ExportOptionsDialog> {
             ),
             const SizedBox(height: 8),
             CheckboxListTile(
-              title: const Text('Math formulas (KaTeX)'),
+              title: const Text('数学公式 (KaTeX)'),
               subtitle: const Text('\$\$ and ( ) delimiters'),
               value: _enableKatex,
               onChanged: (value) {
@@ -94,7 +94,7 @@ class _ExportOptionsDialogState extends State<_ExportOptionsDialog> {
               contentPadding: EdgeInsets.zero,
             ),
             CheckboxListTile(
-              title: const Text('Diagrams (Mermaid)'),
+              title: const Text('图表 (Mermaid)'),
               subtitle: const Text('`mermaid code blocks'),
               value: _enableMermaid,
               onChanged: (value) {
@@ -109,7 +109,7 @@ class _ExportOptionsDialogState extends State<_ExportOptionsDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: const Text('取消'),
         ),
         FilledButton(
           onPressed: () {
@@ -121,7 +121,7 @@ class _ExportOptionsDialogState extends State<_ExportOptionsDialog> {
               ),
             );
           },
-          child: const Text('Export'),
+          child: const Text('导出'),
         ),
       ],
     );

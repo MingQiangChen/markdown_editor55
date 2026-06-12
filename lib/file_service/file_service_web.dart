@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_web_libraries_in_flutter, deprecated_member_use
+﻿// ignore_for_file: avoid_web_libraries_in_flutter, deprecated_member_use
 
 import 'dart:async';
 import 'dart:html' as html;
@@ -82,14 +82,17 @@ class _WebFileService implements FileService {
         (html.window as dynamic).prompt('Save as', defaultName) as String?;
     if (fileName == null || fileName.isEmpty) return null;
 
-    _lastSavedName = fileName;
+    // 确保文件有 .md 扩展名
+    final finalName = fileName.toLowerCase().endsWith('.md') ? fileName : '$fileName.md';
+    _lastSavedName = finalName;
+    
     final blob = html.Blob([content]);
     final url = html.Url.createObjectUrlFromBlob(blob);
     html.AnchorElement(href: url)
-      ..setAttribute('download', fileName)
+      ..setAttribute('download', finalName)
       ..click();
     html.Url.revokeObjectUrl(url);
-    return fileName;
+    return finalName;
   }
 
   @override

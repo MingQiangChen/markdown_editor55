@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:desktop_drop/desktop_drop.dart';
 
 import 'package:flutter/material.dart';
@@ -42,7 +42,7 @@ class _EditorScreenState extends State<EditorScreen> {
   Timer? _saveTimer;
   ViewMode _viewMode = ViewMode.split;
   bool _wordWrap = true;
-  String _saveStatus = 'Saved';
+  String _saveStatus = '已保存';
   List<RecentDocument> _recentDocs = [];
   bool _isDragging = false;
   bool _showFindReplace = false;
@@ -103,7 +103,7 @@ class _EditorScreenState extends State<EditorScreen> {
     if (tabId == _activeTabId) return;
     setState(() {
       _activeTabId = tabId;
-      _saveStatus = 'Saved';
+      _saveStatus = '已保存';
     });
     _activeTab.focusNode.requestFocus();
   }
@@ -157,7 +157,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
     if (_tabs.length == 1) {
       tab.controller.clear();
-      tab.title = 'Untitled';
+      tab.title = '未命名';
       tab.filePath = null;
       tab.isDirty = false;
       setState(() {});
@@ -188,16 +188,16 @@ class _EditorScreenState extends State<EditorScreen> {
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text('Unsaved changes'),
-            content: Text('"$fileName" has unsaved changes. Close anyway?'),
+            title: const Text('未保存的更改'),
+            content: Text('"$fileName" 有未保存的更改。确定要关闭吗？'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Cancel'),
+                child: const Text('取消'),
               ),
               FilledButton.tonal(
                 onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Close'),
+                child: const Text('关闭'),
               ),
             ],
           ),
@@ -211,7 +211,7 @@ class _EditorScreenState extends State<EditorScreen> {
     setState(() {
       _tabs.add(tab);
       _activeTabId = tab.id;
-      _saveStatus = 'Saved';
+      _saveStatus = '已保存';
     });
     tab.focusNode.requestFocus();
   }
@@ -252,7 +252,7 @@ class _EditorScreenState extends State<EditorScreen> {
     setState(() {
       _tabs.add(tab);
       _activeTabId = tab.id;
-      _saveStatus = 'Saved';
+      _saveStatus = '已保存';
     });
     tab.focusNode.requestFocus();
   }
@@ -262,7 +262,7 @@ class _EditorScreenState extends State<EditorScreen> {
       final result = await widget.fileService.openFilePath(doc.path);
       final content = result?.content ?? doc.content;
       if (content == null || !mounted) {
-        if (mounted) setState(() => _saveStatus = 'File not found');
+        if (mounted) setState(() => _saveStatus = '文件未找到');
         return;
       }
 
@@ -306,7 +306,7 @@ class _EditorScreenState extends State<EditorScreen> {
           _activeTab.title = name;
           _activeTab.filePath = path;
           _activeTab.isDirty = false;
-          _saveStatus = 'Saved';
+          _saveStatus = '已保存';
         });
         await _addToRecent(path, name);
       } else if (mounted) {
@@ -456,21 +456,21 @@ class _EditorScreenState extends State<EditorScreen> {
         title: Text(_activeTab.title),
         actions: [
           Tooltip(
-            message: 'Open file',
+            message: '打开文件',
             child: IconButton(
               icon: const Icon(Icons.folder_open),
               onPressed: _openFile,
             ),
           ),
           Tooltip(
-            message: 'Save file',
+            message: '保存文件',
             child: IconButton(
               icon: const Icon(Icons.save),
               onPressed: _saveFile,
             ),
           ),
           Tooltip(
-            message: 'Export',
+            message: '导出',
             child: PopupMenuButton<String>(
               icon: const Icon(Icons.file_download),
               onSelected: (value) {
@@ -484,17 +484,17 @@ class _EditorScreenState extends State<EditorScreen> {
                   (context) => const [
                     PopupMenuItem<String>(
                       value: 'html',
-                      child: Text('Export as HTML'),
+                      child: Text('导出为 HTML'),
                     ),
                     PopupMenuItem<String>(
                       value: 'pdf',
-                      child: Text('Export as PDF'),
+                      child: Text('导出为 PDF'),
                     ),
                   ],
             ),
           ),
           Tooltip(
-            message: 'Recent files',
+            message: '最近文件',
             child: PopupMenuButton<RecentDocument>(
               icon: const Icon(Icons.history),
               onSelected: _openRecent,
@@ -509,14 +509,14 @@ class _EditorScreenState extends State<EditorScreen> {
             ),
           ),
           Tooltip(
-            message: 'Find and replace',
+            message: '查找和替换',
             child: IconButton(
               icon: const Icon(Icons.search),
               onPressed: _toggleFindReplace,
             ),
           ),
           Tooltip(
-            message: 'New document',
+            message: '新建文档',
             child: IconButton(
               icon: const Icon(Icons.add),
               onPressed: _newDocument,
@@ -526,7 +526,7 @@ class _EditorScreenState extends State<EditorScreen> {
             message: switch (_viewMode) {
               ViewMode.editorOnly => 'Editor only',
               ViewMode.split => 'Split view',
-              ViewMode.previewOnly => 'Preview only',
+              ViewMode.previewOnly => '仅预览',
             },
             child: IconButton(
               icon: Icon(switch (_viewMode) {
@@ -538,7 +538,7 @@ class _EditorScreenState extends State<EditorScreen> {
             ),
           ),
           Tooltip(
-            message: _wordWrap ? 'Word wrap: on' : 'Word wrap: off',
+            message: _wordWrap ? '自动换行：开' : '自动换行：关',
             child: IconButton(
               icon: Icon(_wordWrap ? Icons.wrap_text : Icons.text_format),
               onPressed: _toggleWordWrap,

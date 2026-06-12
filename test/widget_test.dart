@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:markdown_editor/file_service/file_service.dart';
@@ -29,25 +29,25 @@ void main() {
     expect(find.byIcon(Icons.folder_open), findsOneWidget);
     expect(find.byIcon(Icons.save), findsOneWidget);
     expect(find.byIcon(Icons.history), findsOneWidget);
-    expect(find.text('Edit + preview'), findsOneWidget);
-    expect(find.text('Wrap'), findsOneWidget);
+    expect(find.text('编辑 + 预览'), findsOneWidget);
+    expect(find.text('自动换行'), findsOneWidget);
 
     // Cycle to preview only.
     await tester.tap(find.byIcon(Icons.view_column));
     await tester.pump();
-    expect(find.text('Preview only'), findsOneWidget);
+    expect(find.text('仅预览'), findsOneWidget);
     expect(find.byIcon(Icons.visibility), findsOneWidget);
 
     // Cycle to editor only.
     await tester.tap(find.byIcon(Icons.visibility));
     await tester.pump();
-    expect(find.text('Edit only'), findsOneWidget);
+    expect(find.text('仅编辑'), findsOneWidget);
     expect(find.byIcon(Icons.edit), findsOneWidget);
 
     // Cycle back to split.
     await tester.tap(find.byIcon(Icons.edit));
     await tester.pump();
-    expect(find.text('Edit + preview'), findsOneWidget);
+    expect(find.text('编辑 + 预览'), findsOneWidget);
   });
 
   testWidgets('toggle word wrap', (tester) async {
@@ -60,19 +60,19 @@ void main() {
       ),
     );
 
-    expect(find.text('Wrap'), findsOneWidget);
+    expect(find.text('自动换行'), findsOneWidget);
     expect(find.byIcon(Icons.wrap_text), findsOneWidget);
 
     // Toggle word wrap off.
     await tester.tap(find.byIcon(Icons.wrap_text));
     await tester.pump();
-    expect(find.text('No wrap'), findsOneWidget);
+    expect(find.text('不换行'), findsOneWidget);
     expect(find.byIcon(Icons.text_format), findsOneWidget);
 
     // Toggle word wrap on.
     await tester.tap(find.byIcon(Icons.text_format));
     await tester.pump();
-    expect(find.text('Wrap'), findsOneWidget);
+    expect(find.text('自动换行'), findsOneWidget);
     expect(find.byIcon(Icons.wrap_text), findsOneWidget);
   });
 
@@ -133,7 +133,7 @@ void main() {
     await tester.tap(find.text('missing.md').first);
     await tester.pumpAndSettle();
 
-    expect(find.text('File not found'), findsOneWidget);
+    expect(find.text('文件未找到'), findsOneWidget);
   });
 }
 

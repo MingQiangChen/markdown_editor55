@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 /// Represents a single document tab in the editor.
 class DocumentTab {
@@ -22,7 +22,7 @@ class DocumentTab {
   factory DocumentTab.empty({required String id}) {
     return DocumentTab(
       id: id,
-      title: 'Untitled',
+      title: '未命名',
       controller: TextEditingController(),
       focusNode: FocusNode(),
     );

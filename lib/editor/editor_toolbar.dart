@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 class EditorToolbar extends StatelessWidget {
   const EditorToolbar({
@@ -39,38 +39,38 @@ class EditorToolbar extends StatelessWidget {
           children: [
             _ToolButton(
               icon: Icons.title,
-              label: 'Heading',
+              label: '标题',
               onPressed: onHeading,
             ),
             _ToolButton(
               icon: Icons.format_bold,
-              label: 'Bold',
+              label: '粗体',
               onPressed: onBold,
             ),
             _ToolButton(
               icon: Icons.format_italic,
-              label: 'Italic',
+              label: '斜体',
               onPressed: onItalic,
             ),
             _ToolButton(
               icon: Icons.code,
-              label: 'Inline code',
+              label: '行内代码',
               onPressed: onCode,
             ),
-            _ToolButton(icon: Icons.link, label: 'Link', onPressed: onLink),
+            _ToolButton(icon: Icons.link, label: '链接', onPressed: onLink),
             _ToolButton(
               icon: Icons.format_quote,
-              label: 'Quote',
+              label: '引用',
               onPressed: onQuote,
             ),
             _ToolButton(
               icon: Icons.format_list_bulleted,
-              label: 'List',
+              label: '列表',
               onPressed: onList,
             ),
             _ToolButton(
               icon: Icons.data_object,
-              label: 'Code block',
+              label: '代码块',
               onPressed: onCodeBlock,
             ),
             const Padding(
@@ -79,17 +79,17 @@ class EditorToolbar extends StatelessWidget {
             ),
             _ToolButton(
               icon: Icons.functions,
-              label: 'Inline math',
+              label: '行内公式',
               onPressed: onInlineMath,
             ),
             _ToolButton(
               icon: Icons.calculate,
-              label: 'Math block',
+              label: '公式块',
               onPressed: onBlockMath,
             ),
             _ToolButton(
               icon: Icons.account_tree,
-              label: 'Mermaid diagram',
+              label: 'Mermaid 图表',
               onPressed: onMermaid,
             ),
           ],

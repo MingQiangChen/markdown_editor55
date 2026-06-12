@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 enum ViewMode { editorOnly, split, previewOnly }
 
@@ -40,9 +40,9 @@ class StatusBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final viewModeText = switch (viewMode) {
-      ViewMode.editorOnly => 'Edit only',
-      ViewMode.split => 'Edit + preview',
-      ViewMode.previewOnly => 'Preview only',
+      ViewMode.editorOnly => '仅编辑',
+      ViewMode.split => '编辑 + 预览',
+      ViewMode.previewOnly => '仅预览',
     };
 
     return Material(
@@ -91,7 +91,7 @@ class StatusBar extends StatelessWidget {
                     const SizedBox(width: 12),
                     Flexible(
                       child: Text(
-                        wordWrap ? 'Wrap' : 'No wrap',
+                        wordWrap ? '自动换行' : '不换行',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),

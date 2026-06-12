@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 
@@ -59,9 +59,12 @@ class _IoFileService implements FileService {
     );
     if (path == null) return null;
 
-    final file = File(path);
+    // 确保文件有 .md 扩展名
+    final finalPath = path.toLowerCase().endsWith('.md') ? path : '$path.md';
+
+    final file = File(finalPath);
     await file.writeAsString(content);
-    return path;
+    return finalPath;
   }
 
   @override

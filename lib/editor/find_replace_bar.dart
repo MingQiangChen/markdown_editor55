@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 /// A find and replace bar that overlays the editor.
 class FindReplaceBar extends StatefulWidget {
@@ -154,13 +154,13 @@ class _FindReplaceBarState extends State<FindReplaceBar> {
                     controller: _findController,
                     focusNode: _findFocusNode,
                     decoration: InputDecoration(
-                      hintText: 'Find...',
+                      hintText: '查找...',
                       isDense: true,
                       border: const OutlineInputBorder(),
                       suffixText:
                           _matchIndices.isEmpty &&
                                   _findController.text.isNotEmpty
-                              ? 'No results'
+                              ? '无结果'
                               : _matchIndices.isNotEmpty
                               ? '/'
                               : null,
@@ -175,7 +175,7 @@ class _FindReplaceBarState extends State<FindReplaceBar> {
                 ),
                 const SizedBox(width: 4),
                 Tooltip(
-                  message: 'Case sensitive',
+                  message: '区分大小写',
                   child: IconButton(
                     icon: Icon(
                       Icons.text_fields,
@@ -192,21 +192,21 @@ class _FindReplaceBarState extends State<FindReplaceBar> {
                   ),
                 ),
                 Tooltip(
-                  message: 'Previous',
+                  message: '上一个',
                   child: IconButton(
                     icon: const Icon(Icons.keyboard_arrow_up, size: 18),
                     onPressed: _findPrevious,
                   ),
                 ),
                 Tooltip(
-                  message: 'Next',
+                  message: '下一个',
                   child: IconButton(
                     icon: const Icon(Icons.keyboard_arrow_down, size: 18),
                     onPressed: _findNext,
                   ),
                 ),
                 Tooltip(
-                  message: _showReplace ? 'Hide replace' : 'Show replace',
+                  message: _showReplace ? '隐藏替换' : '显示替换',
                   child: IconButton(
                     icon: Icon(
                       _showReplace ? Icons.unfold_less : Icons.expand_more,
@@ -218,7 +218,7 @@ class _FindReplaceBarState extends State<FindReplaceBar> {
                   ),
                 ),
                 Tooltip(
-                  message: 'Close',
+                  message: '关闭',
                   child: IconButton(
                     icon: const Icon(Icons.close, size: 18),
                     onPressed: widget.onClose,
@@ -236,7 +236,7 @@ class _FindReplaceBarState extends State<FindReplaceBar> {
                       child: TextField(
                         controller: _replaceController,
                         decoration: const InputDecoration(
-                          hintText: 'Replace...',
+                          hintText: '替换为...',
                           isDense: true,
                           border: OutlineInputBorder(),
                           contentPadding: EdgeInsets.symmetric(
@@ -248,14 +248,14 @@ class _FindReplaceBarState extends State<FindReplaceBar> {
                     ),
                     const SizedBox(width: 4),
                     Tooltip(
-                      message: 'Replace',
+                      message: '替换',
                       child: IconButton(
                         icon: const Icon(Icons.find_replace, size: 18),
                         onPressed: _replaceCurrent,
                       ),
                     ),
                     Tooltip(
-                      message: 'Replace all',
+                      message: '全部替换',
                       child: IconButton(
                         icon: const Icon(
                           Icons.change_circle_outlined,
