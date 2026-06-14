@@ -1,10 +1,11 @@
-ï»¿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 
 import 'editor/editor_screen.dart';
 import 'file_service/file_service.dart';
 import 'recent_store/recent_store.dart';
+import 'settings/settings.dart';
 import 'storage/document_store.dart';
 
 Future<void> main() async {
@@ -12,13 +13,17 @@ Future<void> main() async {
   final documentStore = createDocumentStore();
   final fileService = createFileService();
   final recentStore = createRecentStore();
+  final settingsStore = createSettingsStore();
   final savedDraft = await _loadDraftSafely(documentStore);
+  final settings = await _loadSettingsSafely(settingsStore);
 
   runApp(
     MarkdownEditorApp(
       documentStore: documentStore,
       fileService: fileService,
       recentStore: recentStore,
+      settingsStore: settingsStore,
+      initialSettings: settings,
       initialMarkdown: savedDraft ?? _initialMarkdown,
     ),
   );
@@ -32,24 +37,36 @@ Future<String?> _loadDraftSafely(DocumentStore documentStore) async {
   }
 }
 
+Future<AppSettings> _loadSettingsSafely(SettingsStore settingsStore) async {
+  try {
+    return await settingsStore.loadSettings();
+  } catch (_) {
+    return const AppSettings();
+  }
+}
+
 class MarkdownEditorApp extends StatelessWidget {
   const MarkdownEditorApp({
     super.key,
     required this.documentStore,
     required this.fileService,
     required this.recentStore,
+    required this.settingsStore,
+    required this.initialSettings,
     required this.initialMarkdown,
   });
 
   final DocumentStore documentStore;
   final FileService fileService;
   final RecentStore recentStore;
+  final SettingsStore settingsStore;
+  final AppSettings initialSettings;
   final String initialMarkdown;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'QLaw Markdown ç¼–è¾‘å™¨',
+      title: 'QLaw Markdown ±à¼­Æ÷',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
@@ -69,26 +86,28 @@ class MarkdownEditorApp extends StatelessWidget {
         documentStore: documentStore,
         fileService: fileService,
         recentStore: recentStore,
+        settingsStore: settingsStore,
+        initialSettings: initialSettings,
         initialMarkdown: initialMarkdown,
       ),
     );
   }
 }
 
-const _initialMarkdown = '''# QLaw Markdown ç¼–è¾‘å™¨
+const _initialMarkdown = '''# QLaw Markdown ±à¼­Æ÷
 
-åœ¨å·¦ä¾§ç¼–è¾‘ï¼Œå³ä¾§å®žæ—¶é¢„è§ˆã€‚
+ÔÚ×ó²à±à¼­£¬ÓÒ²àÊµÊ±Ô¤ÀÀ¡£
 
-## åŠŸèƒ½æ¸…å•
+## ¹¦ÄÜÇåµ¥
 
-- Markdown ç¼–è¾‘
-- å®žæ—¶é¢„è§ˆ
-- æ ¼å¼åŒ–å·¥å…·æ 
-- å“åº”å¼æ¡Œé¢å’Œç½‘é¡µå¸ƒå±€
+- Markdown ±à¼­
+- ÊµÊ±Ô¤ÀÀ
+- ¸ñÊ½»¯¹¤¾ßÀ¸
+- ÏìÓ¦Ê½×ÀÃæºÍÍøÒ³²¼¾Ö
 
-> ä¸‹ä¸€æ­¥ï¼šæ·»åŠ æ–‡ä»¶æ‰“å¼€/ä¿å­˜å’Œæœ¬åœ°æ–‡æ¡£æŒä¹…åŒ–ã€‚
+> ÏÂÒ»²½£ºÌí¼ÓÎÄ¼þ´ò¿ª/±£´æºÍ±¾µØÎÄµµ³Ö¾Ã»¯¡£
 
-```
+\\\
 final status = 'prototype ready';
-```
+\\\
 ''';

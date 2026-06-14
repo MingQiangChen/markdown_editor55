@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import 'markdown_editor_highlighter.dart';
 
@@ -13,11 +13,13 @@ class HighlightedMarkdownEditor extends StatefulWidget {
     required this.controller,
     required this.focusNode,
     this.wordWrap = true,
+    this.textStyle,
   });
 
   final TextEditingController controller;
   final FocusNode focusNode;
   final bool wordWrap;
+  final TextStyle? textStyle;
 
   @override
   State<HighlightedMarkdownEditor> createState() =>
@@ -29,11 +31,15 @@ class _HighlightedMarkdownEditorState extends State<HighlightedMarkdownEditor> {
   String _text = '';
 
   static const EdgeInsets _contentPadding = EdgeInsets.all(18);
-  static const TextStyle _baseTextStyle = TextStyle(
+  static const TextStyle _defaultTextStyle = TextStyle(
     fontFamily: 'Consolas',
     fontSize: 15,
     height: 1.45,
   );
+
+  TextStyle get _baseTextStyle {
+    return widget.textStyle ?? _defaultTextStyle;
+  }
 
   @override
   void initState() {

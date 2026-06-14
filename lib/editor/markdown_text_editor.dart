@@ -8,11 +8,13 @@ class MarkdownTextEditor extends StatelessWidget {
     required this.controller,
     required this.focusNode,
     this.wordWrap = true,
+    this.textStyle,
   });
 
   final TextEditingController controller;
   final FocusNode focusNode;
   final bool wordWrap;
+  final TextStyle? textStyle;
 
   @override
   Widget build(BuildContext context) {
@@ -20,6 +22,7 @@ class MarkdownTextEditor extends StatelessWidget {
       controller: controller,
       focusNode: focusNode,
       wordWrap: wordWrap,
+      textStyle: textStyle,
     );
   }
 }

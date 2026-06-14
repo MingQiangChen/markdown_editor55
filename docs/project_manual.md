@@ -1,4 +1,4 @@
-# QLaw Markdown 使用说明
+﻿# QLaw Markdown 使用说明
 
 ## 项目用途
 QLaw Markdown 是一个本地优先的 Markdown 编辑器。它可以编辑 Markdown、实时预览、打开和保存 `.md` 文件，并导出 HTML 或 PDF。
@@ -23,6 +23,7 @@ QLaw Markdown 是一个本地优先的 Markdown 编辑器。它可以编辑 Mark
 - 数学公式支持（行内和块级）
 - Mermaid 图表支持
 - 导出选项对话框（CSS 模板选择）
+- 设置面板（字体、视图模式、自动保存）
 - 键盘快捷键
 
 ## 打开项目
@@ -86,7 +87,22 @@ flutter run -d windows
 | `Ctrl+` ` | 行内代码 |
 | `Ctrl+K` | 插入链接 |
 
-#### 文件操作
+##
+## 设置
+
+点击工具栏的设置图标打开设置面板。
+
+可配置项：
+- **字体大小**：10-24 号
+- **字体**：默认、Consolas、Courier New、Monaco、Source Code Pro
+- **Tab 缩进**：2 或 4 个空格
+- **默认视图模式**：编辑 / 分屏 / 预览
+- **自动换行**：开/关
+- **自动保存间隔**：200-2000 毫秒
+
+设置会立即生效并自动保存。
+
+## 文件操作
 | 快捷键 | 行为 |
 | --- | --- |
 | `Ctrl+S` | 保存（打开 Save As 对话框） |
@@ -132,6 +148,7 @@ flutter run -d windows
 | Export | 导出 HTML 或 PDF |
 | Recent | 打开最近文件列表 |
 | Find | 打开查找和替换栏 |
+| Settings | 打开设置面板 |
 | New | 新建文档 |
 | View Mode | 循环切换视图模式（编辑/分屏/预览） |
 | Word Wrap | 切换自动换行 |
@@ -143,6 +160,21 @@ flutter run -d windows
 `	ext
 filename.md · 150 words · 1200 characters · Saved · Edit + preview · Wrap
 `
+
+
+## 设置
+
+点击工具栏的设置图标打开设置面板。
+
+可配置项：
+- **字体大小**：10-24 号
+- **字体**：默认、Consolas、Courier New、Monaco、Source Code Pro
+- **Tab 缩进**：2 或 4 个空格
+- **默认视图模式**：编辑 / 分屏 / 预览
+- **自动换行**：开/关
+- **自动保存间隔**：200-2000 毫秒
+
+设置会立即生效并自动保存。
 
 ## 文件操作
 

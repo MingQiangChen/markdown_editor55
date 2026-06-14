@@ -1,4 +1,4 @@
-Ôªøimport 'dart:async';
+import 'dart:async';
 import 'package:desktop_drop/desktop_drop.dart';
 
 import 'package:flutter/material.dart';
@@ -7,6 +7,7 @@ import '../export/export_service.dart';
 import '../export/export_options_dialog.dart';
 import '../file_service/file_service.dart';
 import '../recent_store/recent_store.dart';
+import '../settings/settings.dart';
 import '../storage/document_store.dart';
 import 'document_stats.dart';
 import 'document_tab.dart';
@@ -16,6 +17,7 @@ import 'markdown_preview.dart';
 import 'markdown_text_editor.dart';
 import 'editor_shortcuts.dart';
 import 'find_replace_bar.dart';
+import 'settings_panel.dart';
 
 class EditorScreen extends StatefulWidget {
   const EditorScreen({
@@ -23,12 +25,16 @@ class EditorScreen extends StatefulWidget {
     required this.documentStore,
     required this.fileService,
     required this.recentStore,
+    required this.settingsStore,
+    required this.initialSettings,
     required this.initialMarkdown,
   });
 
   final DocumentStore documentStore;
   final FileService fileService;
   final RecentStore recentStore;
+  final SettingsStore settingsStore;
+  final AppSettings initialSettings;
   final String initialMarkdown;
 
   @override
@@ -40,12 +46,14 @@ class _EditorScreenState extends State<EditorScreen> {
   String _activeTabId = '';
   int _tabCounter = 0;
   Timer? _saveTimer;
-  ViewMode _viewMode = ViewMode.split;
-  bool _wordWrap = true;
-  String _saveStatus = 'Â∑≤‰øùÂ≠ò';
+  late ViewMode _viewMode;
+  late bool _wordWrap;
+  late AppSettings _settings;
+  String _saveStatus = '“—±£¥Ê';
   List<RecentDocument> _recentDocs = [];
   bool _isDragging = false;
   bool _showFindReplace = false;
+  bool _showSettings = false;
   final Map<String, VoidCallback> _tabListeners = {};
 
   DocumentTab get _activeTab => _tabs.firstWhere((t) => t.id == _activeTabId);
@@ -67,12 +75,42 @@ class _EditorScreenState extends State<EditorScreen> {
   @override
   void initState() {
     super.initState();
+    _settings = widget.initialSettings;
+    _viewMode = _viewModeFromSettings(_settings.defaultViewMode);
+    _wordWrap = _settings.wordWrap;
+    
     final firstTab = DocumentTab.empty(id: _nextTabId());
     firstTab.controller.text = widget.initialMarkdown;
     _attachListener(firstTab);
     _tabs.add(firstTab);
     _activeTabId = firstTab.id;
     _loadRecentDocs();
+  }
+
+  
+  ViewMode _viewModeFromSettings(EditorViewMode mode) {
+    return switch (mode) {
+      EditorViewMode.editor => ViewMode.editorOnly,
+      EditorViewMode.split => ViewMode.split,
+      EditorViewMode.preview => ViewMode.previewOnly,
+    };
+  }
+
+  EditorViewMode _viewModeToSettings(ViewMode mode) {
+    return switch (mode) {
+      ViewMode.editorOnly => EditorViewMode.editor,
+      ViewMode.split => EditorViewMode.split,
+      ViewMode.previewOnly => EditorViewMode.preview,
+    };
+  }
+
+  void _toggleSettings() {
+    setState(() => _showSettings = !_showSettings);
+  }
+
+  Future<void> _saveSettings(AppSettings newSettings) async {
+    setState(() => _settings = newSettings);
+    await widget.settingsStore.saveSettings(newSettings);
   }
 
   String _nextTabId() {
@@ -126,7 +164,7 @@ class _EditorScreenState extends State<EditorScreen> {
     _saveTimer?.cancel();
     setState(() {
       _activeTabId = tabId;
-      _saveStatus = 'Â∑≤‰øùÂ≠ò';
+      _saveStatus = '“—±£¥Ê';
     });
     _activeTab.focusNode.requestFocus();
   }
@@ -143,10 +181,12 @@ class _EditorScreenState extends State<EditorScreen> {
         ViewMode.previewOnly => ViewMode.editorOnly,
       };
     });
+    _saveSettings(_settings.copyWith(defaultViewMode: _viewModeToSettings(_viewMode)));
   }
 
   void _toggleWordWrap() {
     setState(() => _wordWrap = !_wordWrap);
+    _saveSettings(_settings.copyWith(wordWrap: _wordWrap));
   }
 
   void _nextTab() {
@@ -181,12 +221,12 @@ class _EditorScreenState extends State<EditorScreen> {
     if (_tabs.length == 1) {
       _detachListener(tab);
       tab.controller.clear();
-      tab.title = 'Êú™ÂëΩÂêç';
+      tab.title = 'Œ¥√¸√˚';
       tab.filePath = null;
       tab.isDirty = false;
       _attachListener(tab);
       _saveTimer?.cancel();
-      setState(() => _saveStatus = 'Â∑≤‰øùÂ≠ò');
+      setState(() => _saveStatus = '“—±£¥Ê');
       return;
     }
 
@@ -214,16 +254,16 @@ class _EditorScreenState extends State<EditorScreen> {
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text('Êú™‰øùÂ≠òÁöÑÊõ¥Êîπ'),
-            content: Text('"$fileName" ÊúâÊú™‰øùÂ≠òÁöÑÊõ¥Êîπ„ÄÇÁ°ÆÂÆöË¶ÅÂÖ≥Èó≠ÂêóÔºü'),
+            title: const Text('Œ¥±£¥Êµƒ∏¸∏ƒ'),
+            content: Text('"$fileName" ”–Œ¥±£¥Êµƒ∏¸∏ƒ°£»∑∂®“™πÿ±’¬£ø'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('ÂèñÊ∂à'),
+                child: const Text('»°œ˚'),
               ),
               FilledButton.tonal(
                 onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('ÂÖ≥Èó≠'),
+                child: const Text('πÿ±’'),
               ),
             ],
           ),
@@ -237,7 +277,7 @@ class _EditorScreenState extends State<EditorScreen> {
     setState(() {
       _tabs.add(tab);
       _activeTabId = tab.id;
-      _saveStatus = 'Â∑≤‰øùÂ≠ò';
+      _saveStatus = '“—±£¥Ê';
     });
     tab.focusNode.requestFocus();
   }
@@ -278,7 +318,7 @@ class _EditorScreenState extends State<EditorScreen> {
     setState(() {
       _tabs.add(tab);
       _activeTabId = tab.id;
-      _saveStatus = 'Â∑≤‰øùÂ≠ò';
+      _saveStatus = '“—±£¥Ê';
     });
     tab.focusNode.requestFocus();
   }
@@ -288,7 +328,7 @@ class _EditorScreenState extends State<EditorScreen> {
       final result = await widget.fileService.openFilePath(doc.path);
       final content = result?.content ?? doc.content;
       if (content == null || !mounted) {
-        if (mounted) setState(() => _saveStatus = 'Êñá‰ª∂Êú™ÊâæÂà∞');
+        if (mounted) setState(() => _saveStatus = 'Œƒº˛Œ¥’“µΩ');
         return;
       }
 
@@ -331,7 +371,7 @@ class _EditorScreenState extends State<EditorScreen> {
         if (mounted) {
           setState(() {
             _activeTab.isDirty = false;
-            _saveStatus = 'Â∑≤‰øùÂ≠ò';
+            _saveStatus = '“—±£¥Ê';
           });
         }
       } else {
@@ -344,7 +384,7 @@ class _EditorScreenState extends State<EditorScreen> {
             _activeTab.title = name;
             _activeTab.filePath = path;
             _activeTab.isDirty = false;
-            _saveStatus = 'Â∑≤‰øùÂ≠ò';
+            _saveStatus = '“—±£¥Ê';
           });
           await _addToRecent(path, name);
         } else if (mounted) {
@@ -509,21 +549,21 @@ class _EditorScreenState extends State<EditorScreen> {
         title: Text(_activeTab.title),
         actions: [
           Tooltip(
-            message: 'ÊâìÂºÄÊñá‰ª∂',
+            message: '¥Úø™Œƒº˛',
             child: IconButton(
               icon: const Icon(Icons.folder_open),
               onPressed: _openFile,
             ),
           ),
           Tooltip(
-            message: '‰øùÂ≠òÊñá‰ª∂',
+            message: '±£¥ÊŒƒº˛',
             child: IconButton(
               icon: const Icon(Icons.save),
               onPressed: _saveFile,
             ),
           ),
           Tooltip(
-            message: 'ÂØºÂá∫',
+            message: 'µº≥ˆ',
             child: PopupMenuButton<String>(
               icon: const Icon(Icons.file_download),
               onSelected: (value) {
@@ -537,17 +577,17 @@ class _EditorScreenState extends State<EditorScreen> {
                   (context) => const [
                     PopupMenuItem<String>(
                       value: 'html',
-                      child: Text('ÂØºÂá∫‰∏∫ HTML'),
+                      child: Text('µº≥ˆŒ™ HTML'),
                     ),
                     PopupMenuItem<String>(
                       value: 'pdf',
-                      child: Text('ÂØºÂá∫‰∏∫ PDF'),
+                      child: Text('µº≥ˆŒ™ PDF'),
                     ),
                   ],
             ),
           ),
           Tooltip(
-            message: 'ÊúÄËøëÊñá‰ª∂',
+            message: '◊ÓΩ¸Œƒº˛',
             child: PopupMenuButton<RecentDocument>(
               icon: const Icon(Icons.history),
               onSelected: _openRecent,
@@ -562,14 +602,21 @@ class _EditorScreenState extends State<EditorScreen> {
             ),
           ),
           Tooltip(
-            message: 'Êü•ÊâæÂíåÊõøÊç¢',
+            message: '≤È’“∫ÕÃÊªª',
             child: IconButton(
               icon: const Icon(Icons.search),
               onPressed: _toggleFindReplace,
             ),
           ),
           Tooltip(
-            message: 'Êñ∞Âª∫ÊñáÊ°£',
+            message: '…Ë÷√',
+            child: IconButton(
+              icon: const Icon(Icons.settings),
+              onPressed: _toggleSettings,
+            ),
+          ),
+          Tooltip(
+            message: '–¬Ω®Œƒµµ',
             child: IconButton(
               icon: const Icon(Icons.add),
               onPressed: _newDocument,
@@ -579,7 +626,7 @@ class _EditorScreenState extends State<EditorScreen> {
             message: switch (_viewMode) {
               ViewMode.editorOnly => 'Editor only',
               ViewMode.split => 'Split view',
-              ViewMode.previewOnly => '‰ªÖÈ¢ÑËßà',
+              ViewMode.previewOnly => 'Ωˆ‘§¿¿',
             },
             child: IconButton(
               icon: Icon(switch (_viewMode) {
@@ -591,7 +638,7 @@ class _EditorScreenState extends State<EditorScreen> {
             ),
           ),
           Tooltip(
-            message: _wordWrap ? 'Ëá™Âä®Êç¢Ë°åÔºöÂºÄ' : 'Ëá™Âä®Êç¢Ë°åÔºöÂÖ≥',
+            message: _wordWrap ? '◊‘∂Øªª––£∫ø™' : '◊‘∂Øªª––£∫πÿ',
             child: IconButton(
               icon: Icon(_wordWrap ? Icons.wrap_text : Icons.text_format),
               onPressed: _toggleWordWrap,
@@ -664,6 +711,7 @@ class _EditorScreenState extends State<EditorScreen> {
                           controller: _activeTab.controller,
                           focusNode: _activeTab.focusNode,
                           wordWrap: _wordWrap,
+                          textStyle: _settings.editorTextStyle,
                         );
                         final preview = MarkdownPreview(
                           data: _activeTab.controller.text,
@@ -695,6 +743,17 @@ class _EditorScreenState extends State<EditorScreen> {
                   ),
                 ],
               ),
+                            if (_showSettings)
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: SettingsPanel(
+                    settings: _settings,
+                    onSave: _saveSettings,
+                  ),
+                ),
+
               if (_isDragging)
                 Positioned.fill(
                   child: Container(

@@ -18,6 +18,7 @@ A Flutter Markdown editor for desktop and web.
 - Math formula support (inline $...$ and block $...$) with KaTeX rendering in export
 - Mermaid diagram support with Mermaid.js rendering in export
 - Export options dialog with CSS templates (Default, Dark, Minimal, GitHub)
+- Settings panel with font, view mode, and auto-save preferences
 
 ## Storage
 
@@ -55,15 +56,14 @@ flutter test
 
 ## Documentation
 
-- [Setup guide](docs/setup_guide.md) - 安装与启动步骤
-- [Project manual](docs/project_manual.md) - 使用说明
-- [Technical design](docs/technical_design.md) - 技术设计
-
+- [Setup guide](docs/setup_guide.md) - 安装与启动步�?- [Project manual](docs/project_manual.md) - 使用说明
+- [Technical design](docs/technical_design.md) - 技术设�?
 ## Architecture
 
 ```text
 lib/
   main.dart                        App entry point
+  settings/                        Settings persistence and panel
   editor/                          Editor widgets (screen, toolbar, preview, stats)
     markdown_extensions/           Custom Markdown syntax extensions (math, mermaid)
   file_service/                    File open/save/export (IO + Web)

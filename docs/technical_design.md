@@ -236,6 +236,25 @@ Desktop implementation uses `file_picker` and `dart:io`. Web implementation uses
 
 Web entries include cached content so a recent file can be reopened without direct filesystem access.
 
+
+## Settings
+
+\SettingsStore\ persists user preferences:
+
+- Desktop: \%APPDATA%\\QLawMarkdown\\settings.json\
+- Web: \localStorage\ key \qlaw_markdown.settings\
+- Stub: in-memory storage for tests
+
+\AppSettings\ includes:
+- Font size (10-24)
+- Font family (Consolas, Courier New, Monaco, Source Code Pro)
+- Tab size (2 or 4 spaces)
+- Default view mode (editor/split/preview)
+- Word wrap toggle
+- Auto-save interval (200-2000 ms)
+
+Settings are applied immediately when changed in the settings panel.
+
 ## Draft Storage
 
 `DocumentStore` persists drafts:
