@@ -18,6 +18,7 @@ import 'markdown_text_editor.dart';
 import 'editor_shortcuts.dart';
 import 'find_replace_bar.dart';
 import 'settings_panel.dart';
+import 'document_outline.dart';
 
 class EditorScreen extends StatefulWidget {
   const EditorScreen({
@@ -54,6 +55,8 @@ class _EditorScreenState extends State<EditorScreen> {
   bool _isDragging = false;
   bool _showFindReplace = false;
   bool _showSettings = false;
+  bool _showOutline = false;
+  bool _isFullScreen = false;
   final Map<String, VoidCallback> _tabListeners = {};
 
   DocumentTab get _activeTab => _tabs.firstWhere((t) => t.id == _activeTabId);
@@ -87,7 +90,6 @@ class _EditorScreenState extends State<EditorScreen> {
     _loadRecentDocs();
   }
 
-  
   ViewMode _viewModeFromSettings(EditorViewMode mode) {
     return switch (mode) {
       EditorViewMode.editor => ViewMode.editorOnly,
@@ -108,14 +110,38 @@ class _EditorScreenState extends State<EditorScreen> {
     setState(() => _showSettings = !_showSettings);
   }
 
+  void _toggleOutline() {
+    setState(() => _showOutline = !_showOutline);
+  }
+
+  void _toggleFullScreen() {
+    setState(() => _isFullScreen = !_isFullScreen);
+  }
+
   Future<void> _saveSettings(AppSettings newSettings) async {
     setState(() => _settings = newSettings);
     await widget.settingsStore.saveSettings(newSettings);
   }
 
+  void _jumpToLine(int lineIndex) {
+    final controller = _activeTab.controller;
+    final text = controller.text;
+    final lines = text.split('\n');
+    
+    if (lineIndex >= lines.length) return;
+    
+    int charIndex = 0;
+    for (int i = 0; i < lineIndex; i++) {
+      charIndex += lines[i].length + 1; // +1 for newline
+    }
+    
+    controller.selection = TextSelection.collapsed(offset: charIndex);
+    _activeTab.focusNode.requestFocus();
+  }
+
   String _nextTabId() {
     _tabCounter++;
-    return 'tab_$_tabCounter';
+    return 'tab_';
   }
 
   Future<void> _loadRecentDocs() async {
@@ -249,69 +275,51 @@ class _EditorScreenState extends State<EditorScreen> {
     });
   }
 
-  Future<bool> _confirmCloseUnsaved(String fileName) async {
+  Future<bool> _confirmCloseUnsaved(String title) async {
     final result = await showDialog<bool>(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('未保存的更改'),
-            content: Text('"$fileName" 有未保存的更改。确定要关闭吗？'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('取消'),
-              ),
-              FilledButton.tonal(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('关闭'),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: const Text('关闭文档'),
+        content: Text('文档 "" 有未保存的更改，是否关闭？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
           ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('关闭'),
+          ),
+        ],
+      ),
     );
     return result ?? false;
-  }
-
-  void _newTab() {
-    final tab = DocumentTab.empty(id: _nextTabId());
-    _attachListener(tab);
-    setState(() {
-      _tabs.add(tab);
-      _activeTabId = tab.id;
-      _saveStatus = '已保存';
-    });
-    tab.focusNode.requestFocus();
-  }
-
-  Future<void> _addToRecent(String path, String name) async {
-    final doc = RecentDocument(
-      path: path,
-      name: name,
-      content: path == name ? _activeTab.controller.text : null,
-      lastOpened: DateTime.now(),
-    );
-    await widget.recentStore.add(doc);
-    await _loadRecentDocs();
   }
 
   Future<void> _openFile() async {
     try {
       final result = await widget.fileService.openFile();
-      if (result == null || !mounted) return;
-
-      _openFileResult(result);
-      await _addToRecent(result.path, result.name);
+      if (result != null && mounted) {
+        await _openFileResult(result);
+      }
     } catch (e) {
       if (mounted) {
-        setState(() => _saveStatus = 'Open failed: $e');
+        _showError('打开文件失败: ');
       }
     }
   }
 
-  void _openFileResult(FileOpenResult result) {
+  Future<void> _openFileResult(FileOpenResult result) async {
+    final existingIndex = _tabs.indexWhere((t) => t.filePath == result.path);
+    if (existingIndex >= 0) {
+      _switchTab(_tabs[existingIndex].id);
+      return;
+    }
+
     final tab = DocumentTab.fromFile(
       id: _nextTabId(),
-      filePath: result.path,
-      fileName: result.name,
+      path: result.path,
+      title: result.name,
       content: result.content,
     );
     _attachListener(tab);
@@ -320,44 +328,21 @@ class _EditorScreenState extends State<EditorScreen> {
       _activeTabId = tab.id;
       _saveStatus = '已保存';
     });
-    tab.focusNode.requestFocus();
+    await _addToRecent(result.path, result.name);
   }
 
-  Future<void> _openRecent(RecentDocument doc) async {
+  Future<void> _addToRecent(String path, String name) async {
     try {
-      final result = await widget.fileService.openFilePath(doc.path);
-      final content = result?.content ?? doc.content;
-      if (content == null || !mounted) {
-        if (mounted) setState(() => _saveStatus = '文件未找到');
-        return;
-      }
-
-      final fileResult = FileOpenResult(
-        content: content,
-        path: doc.path,
-        name: doc.name,
-        lastModified: result?.lastModified,
+      await widget.recentStore.add(
+        RecentDocument(
+          path: path,
+          name: name,
+          content: null,
+        ),
       );
-      _openFileResult(fileResult);
-      await _addToRecent(doc.path, doc.name);
-    } catch (e) {
-      if (mounted) {
-        setState(() => _saveStatus = 'Open failed: $e');
-      }
-    }
-  }
-
-  Future<void> openFilePath(String path) async {
-    try {
-      final result = await widget.fileService.openFilePath(path);
-      if (result == null || !mounted) return;
-
-      _openFileResult(result);
-      await _addToRecent(result.path, result.name);
-    } catch (e) {
-      if (mounted) {
-        setState(() => _saveStatus = 'Open failed: $e');
-      }
+      await _loadRecentDocs();
+    } catch (_) {
+      // Ignore recent store errors
     }
   }
 
@@ -393,37 +378,71 @@ class _EditorScreenState extends State<EditorScreen> {
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _saveStatus = 'Save failed: $e');
+        _showError('保存失败: ');
       }
     }
+  }
+
+  void _newDocument() {
+    final tab = DocumentTab.empty(id: _nextTabId());
+    _attachListener(tab);
+    setState(() {
+      _tabs.add(tab);
+      _activeTabId = tab.id;
+      _saveStatus = '已保存';
+    });
+  }
+
+  Future<void> _openRecent(RecentDocument doc) async {
+    try {
+      final result = await widget.fileService.openFilePath(doc.path);
+      if (result != null && mounted) {
+        await _openFileResult(result);
+      }
+    } catch (e) {
+      if (mounted) {
+        _showError('打开文件失败: ');
+      }
+    }
+  }
+
+  void _showError(String message) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('错误'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _exportHtml() async {
     final options = await showExportOptionsDialog(context);
     if (options == null) return;
 
-    final html = markdownToHtmlPage(
-      _activeTab.controller.text,
-      title: _activeTab.title,
-      template: options.template,
-      enableKatex: options.enableKatex,
-      enableMermaid: options.enableMermaid,
-    );
-    final titleWithoutExt = _activeTab.title.replaceAll(RegExp(r'\.md$'), '');
-    final defaultName = '$titleWithoutExt.html';
     try {
-      final path = await widget.fileService.exportFile(html, defaultName, [
-        'html',
-        'htm',
-      ]);
-      if (mounted) {
-        setState(() {
-          _saveStatus = path != null ? 'Exported' : 'Export cancelled';
-        });
+      final html = markdownToHtmlPage(
+        _activeTab.controller.text,
+        _activeTab.title,
+        options: options,
+      );
+      final path = await widget.fileService.exportFile(
+        html,
+        _activeTab.title.replaceAll('.md', ''),
+        ['html'],
+      );
+      if (path != null && mounted) {
+        setState(() => _saveStatus = '已导出');
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _saveStatus = 'Export failed: $e');
+        _showError('导出 HTML 失败: ');
       }
     }
   }
@@ -435,21 +454,17 @@ class _EditorScreenState extends State<EditorScreen> {
     try {
       await shareAsPdf(
         _activeTab.controller.text,
-        filename: _activeTab.title,
-        template: options.template,
-        enableKatex: options.enableKatex,
-        enableMermaid: options.enableMermaid,
+        _activeTab.title,
+        options: options,
       );
-      if (mounted) setState(() => _saveStatus = 'Exported');
+      if (mounted) {
+        setState(() => _saveStatus = '已导出');
+      }
     } catch (e) {
       if (mounted) {
-        setState(() => _saveStatus = 'Export failed: $e');
+        _showError('导出 PDF 失败: ');
       }
     }
-  }
-
-  void _newDocument() {
-    _newTab();
   }
 
   void _wrapSelection(String before, String after) {
@@ -470,7 +485,7 @@ class _EditorScreenState extends State<EditorScreen> {
     if (selection.isCollapsed) {
       controller.text = text.replaceRange(
         selection.start,
-        selection.start,
+        selection.end,
         before + after,
       );
       controller.selection = TextSelection.collapsed(
@@ -481,7 +496,7 @@ class _EditorScreenState extends State<EditorScreen> {
       controller.text = text.replaceRange(
         selection.start,
         selection.end,
-        '$before$selected$after',
+        before + selected + after,
       );
       controller.selection = TextSelection(
         baseOffset: selection.start + before.length,
@@ -522,228 +537,44 @@ class _EditorScreenState extends State<EditorScreen> {
     _activeTab.focusNode.requestFocus();
   }
 
-  void _onDragEntered(_) {
-    setState(() => _isDragging = true);
-  }
-
-  void _onDragExited(_) {
-    setState(() => _isDragging = false);
-  }
-
-  Future<void> _onDragDone(DropDoneDetails message) async {
-    setState(() => _isDragging = false);
-    for (final file in message.files) {
-      if (file.path.toLowerCase().endsWith('.md')) {
-        await openFilePath(file.path);
-        break;
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final stats = DocumentStats.fromText(_activeTab.controller.text);
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_activeTab.title),
-        actions: [
-          Tooltip(
-            message: '打开文件',
-            child: IconButton(
-              icon: const Icon(Icons.folder_open),
-              onPressed: _openFile,
-            ),
-          ),
-          Tooltip(
-            message: '保存文件',
-            child: IconButton(
-              icon: const Icon(Icons.save),
-              onPressed: _saveFile,
-            ),
-          ),
-          Tooltip(
-            message: '导出',
-            child: PopupMenuButton<String>(
-              icon: const Icon(Icons.file_download),
-              onSelected: (value) {
-                if (value == 'html') {
-                  _exportHtml();
-                } else {
-                  _exportPdf();
+    return EditorShortcuts(
+      onBold: () => _wrapSelection('**', '**'),
+      onItalic: () => _wrapSelection('*', '*'),
+      onCode: () => _wrapSelection('', ''),
+      onLink: () => _wrapSelection('[', '](https://example.com)'),
+      onSave: _saveFile,
+      onOpen: _openFile,
+      onNew: _newDocument,
+      onFind: _toggleFindReplace,
+      onTogglePreview: _cycleViewMode,
+      onNextTab: _nextTab,
+      onPreviousTab: _previousTab,
+      onCloseTab: _closeActiveTab,
+      child: Scaffold(
+        body: DropTarget(
+          onDragDone: (details) async {
+            if (details.files.isNotEmpty) {
+              final file = details.files.first;
+              try {
+                final result = await widget.fileService.openFilePath(file.path);
+                if (result != null && mounted) {
+                  await _openFileResult(result);
                 }
-              },
-              itemBuilder:
-                  (context) => const [
-                    PopupMenuItem<String>(
-                      value: 'html',
-                      child: Text('导出为 HTML'),
-                    ),
-                    PopupMenuItem<String>(
-                      value: 'pdf',
-                      child: Text('导出为 PDF'),
-                    ),
-                  ],
-            ),
-          ),
-          Tooltip(
-            message: '最近文件',
-            child: PopupMenuButton<RecentDocument>(
-              icon: const Icon(Icons.history),
-              onSelected: _openRecent,
-              itemBuilder:
-                  (context) => [
-                    for (final doc in _recentDocs)
-                      PopupMenuItem<RecentDocument>(
-                        value: doc,
-                        child: Text(doc.name),
-                      ),
-                  ],
-            ),
-          ),
-          Tooltip(
-            message: '查找和替换',
-            child: IconButton(
-              icon: const Icon(Icons.search),
-              onPressed: _toggleFindReplace,
-            ),
-          ),
-          Tooltip(
-            message: '设置',
-            child: IconButton(
-              icon: const Icon(Icons.settings),
-              onPressed: _toggleSettings,
-            ),
-          ),
-          Tooltip(
-            message: '新建文档',
-            child: IconButton(
-              icon: const Icon(Icons.add),
-              onPressed: _newDocument,
-            ),
-          ),
-          Tooltip(
-            message: switch (_viewMode) {
-              ViewMode.editorOnly => 'Editor only',
-              ViewMode.split => 'Split view',
-              ViewMode.previewOnly => '仅预览',
-            },
-            child: IconButton(
-              icon: Icon(switch (_viewMode) {
-                ViewMode.editorOnly => Icons.edit,
-                ViewMode.split => Icons.view_column,
-                ViewMode.previewOnly => Icons.visibility,
-              }),
-              onPressed: _cycleViewMode,
-            ),
-          ),
-          Tooltip(
-            message: _wordWrap ? '自动换行：开' : '自动换行：关',
-            child: IconButton(
-              icon: Icon(_wordWrap ? Icons.wrap_text : Icons.text_format),
-              onPressed: _toggleWordWrap,
-            ),
-          ),
-        ],
-      ),
-      body: EditorShortcuts(
-        onBold: () => _wrapSelection('**', '**'),
-        onItalic: () => _wrapSelection('*', '*'),
-        onCode: () => _wrapSelection('`', '`'),
-        onLink: () => _wrapSelection('[', '](https://example.com)'),
-        onSave: _saveFile,
-        onOpen: _openFile,
-        onNewDocument: _newDocument,
-        onFind: _toggleFindReplace,
-        onTogglePreview:
-            () => setState(() {
-              _viewMode =
-                  _viewMode == ViewMode.split
-                      ? ViewMode.editorOnly
-                      : ViewMode.split;
-            }),
-        onCycleViewMode: _cycleViewMode,
-        onToggleWordWrap: _toggleWordWrap,
-        onNextTab: _nextTab,
-        onPreviousTab: _previousTab,
-        onCloseTab: _closeActiveTab,
-        child: DropTarget(
-          onDragEntered: _onDragEntered,
-          onDragExited: _onDragExited,
-          onDragDone: _onDragDone,
+              } catch (e) {
+                if (mounted) {
+                  _showError('打开文件失败: ');
+                }
+              }
+            }
+          },
+          onDragEntered: (_) => setState(() => _isDragging = true),
+          onDragExited: (_) => setState(() => _isDragging = false),
           child: Stack(
             children: [
-              Column(
-                children: [
-                  DocumentTabBar(
-                    tabs: _tabs,
-                    activeTabId: _activeTabId,
-                    onTabSelected: _switchTab,
-                    onTabClosed: _closeTab,
-                    onNewTab: _newTab,
-                  ),
-                  EditorToolbar(
-                    onBold: () => _wrapSelection('**', '**'),
-                    onItalic: () => _wrapSelection('*', '*'),
-                    onCode: () => _wrapSelection('`', '`'),
-                    onLink: () => _wrapSelection('[', '](https://example.com)'),
-                    onHeading: () => _prefixCurrentLine('## '),
-                    onQuote: () => _prefixCurrentLine('> '),
-                    onList: () => _prefixCurrentLine('- '),
-                    onCodeBlock: () => _insertBlock('```\ncode\n```\n'),
-                    onInlineMath: () => _wrapSelection('\$', '\$'),
-                    onBlockMath: () => _insertBlock('\$\$\nformula\n\$\$\n'),
-                    onMermaid:
-                        () => _insertBlock(
-                          '```mermaid\ngraph TD\n    A[Start] --> B[End]\n```\n',
-                        ),
-                  ),
-                  if (_showFindReplace)
-                    FindReplaceBar(
-                      controller: _activeTab.controller,
-                      onClose: () => setState(() => _showFindReplace = false),
-                    ),
-                  Expanded(
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final compact = constraints.maxWidth < 760;
-                        final editor = MarkdownTextEditor(
-                          controller: _activeTab.controller,
-                          focusNode: _activeTab.focusNode,
-                          wordWrap: _wordWrap,
-                          textStyle: _settings.editorTextStyle,
-                        );
-                        final preview = MarkdownPreview(
-                          data: _activeTab.controller.text,
-                        );
-
-                        return switch (_viewMode) {
-                          ViewMode.editorOnly => editor,
-                          ViewMode.split when compact => PageView(
-                            children: [editor, preview],
-                          ),
-                          ViewMode.split => Row(
-                            children: [
-                              Expanded(child: editor),
-                              const VerticalDivider(width: 1),
-                              Expanded(child: preview),
-                            ],
-                          ),
-                          ViewMode.previewOnly => preview,
-                        };
-                      },
-                    ),
-                  ),
-                  StatusBar(
-                    stats: stats,
-                    viewMode: _viewMode,
-                    wordWrap: _wordWrap,
-                    saveStatus: _saveStatus,
-                    fileName: _activeTab.title,
-                  ),
-                ],
-              ),
-                            if (_showSettings)
+              _buildMainContent(context),
+              if (_showSettings)
                 Positioned(
                   top: 0,
                   right: 0,
@@ -753,7 +584,6 @@ class _EditorScreenState extends State<EditorScreen> {
                     onSave: _saveSettings,
                   ),
                 ),
-
               if (_isDragging)
                 Positioned.fill(
                   child: Container(
@@ -801,5 +631,220 @@ class _EditorScreenState extends State<EditorScreen> {
       ),
     );
   }
-}
 
+  Widget _buildMainContent(BuildContext context) {
+    final stats = DocumentStats.fromText(_activeTab.controller.text);
+
+    if (_isFullScreen) {
+      return Column(
+        children: [
+          // Full screen: minimal UI
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.fullscreen_exit),
+                tooltip: '退出全屏 (Esc)',
+                onPressed: _toggleFullScreen,
+              ),
+              const Spacer(),
+              Text(
+                _activeTab.title,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                _saveStatus,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(width: 16),
+            ],
+          ),
+          Expanded(
+            child: MarkdownTextEditor(
+              controller: _activeTab.controller,
+              focusNode: _activeTab.focusNode,
+              wordWrap: _wordWrap,
+              textStyle: _settings.editorTextStyle,
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      children: [
+        DocumentTabBar(
+          tabs: _tabs,
+          activeTabId: _activeTabId,
+          onTabSelected: _switchTab,
+          onTabClosed: _closeTab,
+          onNewTab: _newDocument,
+        ),
+        Row(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.folder_open),
+              tooltip: '打开文件',
+              onPressed: _openFile,
+            ),
+            IconButton(
+              icon: const Icon(Icons.save),
+              tooltip: '保存文件',
+              onPressed: _saveFile,
+            ),
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.file_download),
+              tooltip: '导出',
+              onSelected: (value) {
+                if (value == 'html') {
+                  _exportHtml();
+                } else if (value == 'pdf') {
+                  _exportPdf();
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(value: 'html', child: Text('导出为 HTML')),
+                const PopupMenuItem(value: 'pdf', child: Text('导出为 PDF')),
+              ],
+            ),
+            PopupMenuButton<RecentDocument>(
+              icon: const Icon(Icons.history),
+              tooltip: '最近文档',
+              onSelected: _openRecent,
+              itemBuilder: (context) => [
+                if (_recentDocs.isEmpty)
+                  const PopupMenuItem(
+                    enabled: false,
+                    child: Text('暂无最近文档'),
+                  )
+                else
+                  ..._recentDocs.map(
+                    (doc) => PopupMenuItem(
+                      value: doc,
+                      child: Text(doc.name),
+                    ),
+                  ),
+              ],
+            ),
+            const VerticalDivider(width: 1),
+            Tooltip(
+              message: '查找和替换',
+              child: IconButton(
+                icon: const Icon(Icons.search),
+                onPressed: _toggleFindReplace,
+              ),
+            ),
+            Tooltip(
+              message: '文档大纲',
+              child: IconButton(
+                icon: const Icon(Icons.list),
+                onPressed: _toggleOutline,
+              ),
+            ),
+            Tooltip(
+              message: '新建文档',
+              child: IconButton(
+                icon: const Icon(Icons.add),
+                onPressed: _newDocument,
+              ),
+            ),
+            Tooltip(
+              message: switch (_viewMode) {
+                ViewMode.editorOnly => '切换到分屏',
+                ViewMode.split => '切换到预览',
+                ViewMode.previewOnly => '切换到编辑',
+              },
+              child: IconButton(
+                icon: Icon(switch (_viewMode) {
+                  ViewMode.editorOnly => Icons.edit,
+                  ViewMode.split => Icons.view_column,
+                  ViewMode.previewOnly => Icons.preview,
+                }),
+                onPressed: _cycleViewMode,
+              ),
+            ),
+            Tooltip(
+              message: _wordWrap ? '关闭自动换行' : '开启自动换行',
+              child: IconButton(
+                icon: Icon(_wordWrap ? Icons.wrap_text : Icons.text_format),
+                onPressed: _toggleWordWrap,
+              ),
+            ),
+            Tooltip(
+              message: _isFullScreen ? '退出全屏' : '全屏模式',
+              child: IconButton(
+                icon: Icon(_isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen),
+                onPressed: _toggleFullScreen,
+              ),
+            ),
+            const Spacer(),
+            Tooltip(
+              message: '设置',
+              child: IconButton(
+                icon: const Icon(Icons.settings),
+                onPressed: _toggleSettings,
+              ),
+            ),
+          ],
+        ),
+        if (_showFindReplace)
+          FindReplaceBar(
+            controller: _activeTab.controller,
+            onClose: () => setState(() => _showFindReplace = false),
+          ),
+        Expanded(
+          child: Row(
+            children: [
+              if (_showOutline)
+                DocumentOutline(
+                  text: _activeTab.controller.text,
+                  onItemTap: (item) => _jumpToLine(item.lineIndex),
+                ),
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final compact = constraints.maxWidth < 760;
+                    final editor = MarkdownTextEditor(
+                      controller: _activeTab.controller,
+                      focusNode: _activeTab.focusNode,
+                      wordWrap: _wordWrap,
+                      textStyle: _settings.editorTextStyle,
+                    );
+                    final preview = MarkdownPreview(
+                      data: _activeTab.controller.text,
+                    );
+
+                    return switch (_viewMode) {
+                      ViewMode.editorOnly => editor,
+                      ViewMode.split when compact => PageView(
+                        children: [editor, preview],
+                      ),
+                      ViewMode.split => Row(
+                        children: [
+                          Expanded(child: editor),
+                          const VerticalDivider(width: 1),
+                          Expanded(child: preview),
+                        ],
+                      ),
+                      ViewMode.previewOnly => preview,
+                    };
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+        StatusBar(
+          stats: stats,
+          viewMode: _viewMode,
+          wordWrap: _wordWrap,
+          saveStatus: _saveStatus,
+          fileName: _activeTab.title,
+          controller: _activeTab.controller,
+        ),
+      ],
+    );
+  }
+}

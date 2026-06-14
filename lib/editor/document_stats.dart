@@ -1,4 +1,4 @@
-Ôªøimport 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 enum ViewMode { editorOnly, split, previewOnly }
 
@@ -21,13 +21,14 @@ class DocumentStats {
   }
 }
 
-class StatusBar extends StatelessWidget {
+class StatusBar extends StatefulWidget {
   const StatusBar({
     super.key,
     required this.stats,
     required this.viewMode,
     required this.wordWrap,
     required this.saveStatus,
+    required this.controller,
     this.fileName,
   });
 
@@ -36,13 +37,57 @@ class StatusBar extends StatelessWidget {
   final bool wordWrap;
   final String saveStatus;
   final String? fileName;
+  final TextEditingController controller;
+
+  @override
+  State<StatusBar> createState() => _StatusBarState();
+}
+
+class _StatusBarState extends State<StatusBar> {
+  int _line = 1;
+  int _column = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_updateCursorPosition);
+    _updateCursorPosition();
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_updateCursorPosition);
+    super.dispose();
+  }
+
+  void _updateCursorPosition() {
+    final text = widget.controller.text;
+    final selection = widget.controller.selection;
+    
+    if (!selection.isValid || selection.start < 0) {
+      setState(() {
+        _line = 1;
+        _column = 1;
+      });
+      return;
+    }
+
+    final cursorPos = selection.start;
+    final textBefore = text.substring(0, cursorPos);
+    final lines = textBefore.split('\n');
+    
+    setState(() {
+      _line = lines.length;
+      _column = lines.last.length + 1;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final viewModeText = switch (viewMode) {
-      ViewMode.editorOnly => '‰ªÖÁºñËæë',
-      ViewMode.split => 'ÁºñËæë + È¢ÑËßà',
-      ViewMode.previewOnly => '‰ªÖÈ¢ÑËßà',
+    final viewModeText = switch (widget.viewMode) {
+      ViewMode.editorOnly => 'Ωˆ±‡º≠',
+      ViewMode.split => '±‡º≠ + ‘§¿¿',
+      ViewMode.previewOnly => 'Ωˆ‘§¿¿',
     };
 
     return Material(
@@ -53,19 +98,21 @@ class StatusBar extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14),
           child: Row(
             children: [
-              if (fileName != null) ...[
+              if (widget.fileName != null) ...[
                 Text(
-                  fileName!,
+                  widget.fileName!,
                   style: const TextStyle(fontWeight: FontWeight.w600),
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(width: 12),
-                Text('¬∑'),
+                Text('°§'),
                 const SizedBox(width: 12),
               ],
-              Text('${stats.words} words'),
+              Text('–– , ¡– '),
               const SizedBox(width: 16),
-              Text('${stats.characters} characters'),
+              Text('\ ¥ '),
+              const SizedBox(width: 16),
+              Text('\ ◊÷∑˚'),
               const SizedBox(width: 16),
               Expanded(
                 child: Row(
@@ -73,7 +120,7 @@ class StatusBar extends StatelessWidget {
                   children: [
                     Flexible(
                       child: Text(
-                        saveStatus,
+                        widget.saveStatus,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -87,11 +134,11 @@ class StatusBar extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    const Text('¬∑'),
+                    const Text('°§'),
                     const SizedBox(width: 12),
                     Flexible(
                       child: Text(
-                        wordWrap ? 'Ëá™Âä®Êç¢Ë°å' : '‰∏çÊç¢Ë°å',
+                        widget.wordWrap ? '◊‘∂Øªª––' : '≤ªªª––',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),

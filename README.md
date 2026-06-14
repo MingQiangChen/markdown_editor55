@@ -19,6 +19,9 @@ A Flutter Markdown editor for desktop and web.
 - Mermaid diagram support with Mermaid.js rendering in export
 - Export options dialog with CSS templates (Default, Dark, Minimal, GitHub)
 - Settings panel with font, view mode, and auto-save preferences
+- Document outline panel for navigation
+- Full-screen mode for distraction-free editing
+- Enhanced status bar with line and column numbers
 
 ## Storage
 
