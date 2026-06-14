@@ -64,7 +64,7 @@ class DocumentOutline extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(12),
             child: Text(
-              '文档大纲',
+              '鏂囨。澶х翰',
               style: theme.textTheme.titleSmall,
             ),
           ),
@@ -75,7 +75,7 @@ class DocumentOutline extends StatelessWidget {
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Text(
-                        '暂无标题',
+                        '鏆傛棤鏍囬',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),

@@ -46,7 +46,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
         padding: const EdgeInsets.all(16),
         children: [
           Text(
-            '设置',
+            '璁剧疆',
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 16),
@@ -70,7 +70,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('字体大小: '),
+        Text('瀛椾綋澶у皬: '),
         Slider(
           value: _settings.fontSize,
           min: 10,
@@ -89,7 +89,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('字体'),
+        Text('瀛椾綋'),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
           value: _settings.fontFamily.isEmpty ? null : _settings.fontFamily,
@@ -98,7 +98,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
             contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           ),
           items: const [
-            DropdownMenuItem(value: '', child: Text('默认')),
+            DropdownMenuItem(value: '', child: Text('榛樿')),
             DropdownMenuItem(value: 'Consolas', child: Text('Consolas')),
             DropdownMenuItem(value: 'Courier New', child: Text('Courier New')),
             DropdownMenuItem(value: 'Monaco', child: Text('Monaco')),
@@ -116,7 +116,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Tab 缩进'),
+        Text('Tab 缂╄繘'),
         const SizedBox(height: 8),
         SegmentedButton<int>(
           segments: const [
@@ -136,13 +136,13 @@ class _SettingsPanelState extends State<SettingsPanel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('默认视图模式'),
+        Text('榛樿瑙嗗浘妯″紡'),
         const SizedBox(height: 8),
         SegmentedButton<EditorViewMode>(
           segments: const [
-            ButtonSegment(value: EditorViewMode.editor, label: Text('编辑')),
-            ButtonSegment(value: EditorViewMode.split, label: Text('分屏')),
-            ButtonSegment(value: EditorViewMode.preview, label: Text('预览')),
+            ButtonSegment(value: EditorViewMode.editor, label: Text('缂栬緫')),
+            ButtonSegment(value: EditorViewMode.split, label: Text('鍒嗗睆')),
+            ButtonSegment(value: EditorViewMode.preview, label: Text('棰勮')),
           ],
           selected: {_settings.defaultViewMode},
           onSelectionChanged: (values) {
@@ -155,7 +155,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
 
   Widget _buildWordWrapSection(BuildContext context) {
     return SwitchListTile(
-      title: const Text('自动换行'),
+      title: const Text('鑷姩鎹㈣'),
       value: _settings.wordWrap,
       onChanged: (value) {
         _update(_settings.copyWith(wordWrap: value));
@@ -168,7 +168,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('自动保存间隔:  ms'),
+        Text('鑷姩淇濆瓨闂撮殧:  ms'),
         Slider(
           value: _settings.autoSaveIntervalMs.toDouble(),
           min: 200,

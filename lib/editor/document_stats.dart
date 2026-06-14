@@ -85,9 +85,9 @@ class _StatusBarState extends State<StatusBar> {
   @override
   Widget build(BuildContext context) {
     final viewModeText = switch (widget.viewMode) {
-      ViewMode.editorOnly => 'Ωˆ±‡º≠',
-      ViewMode.split => '±‡º≠ + ‘§¿¿',
-      ViewMode.previewOnly => 'Ωˆ‘§¿¿',
+      ViewMode.editorOnly => '‰ªÖÁºñËæë',
+      ViewMode.split => 'ÁºñËæë + È¢ÑËßà',
+      ViewMode.previewOnly => '‰ªÖÈ¢ÑËßà',
     };
 
     return Material(
@@ -105,14 +105,14 @@ class _StatusBarState extends State<StatusBar> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(width: 12),
-                Text('°§'),
+                Text('¬∑'),
                 const SizedBox(width: 12),
               ],
-              Text('–– , ¡– '),
+              Text('Ë°å , Âàó '),
               const SizedBox(width: 16),
-              Text('\ ¥ '),
+              Text('\ ËØç'),
               const SizedBox(width: 16),
-              Text('\ ◊÷∑˚'),
+              Text('\ Â≠óÁ¨¶'),
               const SizedBox(width: 16),
               Expanded(
                 child: Row(
@@ -134,11 +134,11 @@ class _StatusBarState extends State<StatusBar> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    const Text('°§'),
+                    const Text('¬∑'),
                     const SizedBox(width: 12),
                     Flexible(
                       child: Text(
-                        widget.wordWrap ? '◊‘∂Øªª––' : '≤ªªª––',
+                        widget.wordWrap ? 'Ëá™Âä®Êç¢Ë°å' : '‰∏çÊç¢Ë°å',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),

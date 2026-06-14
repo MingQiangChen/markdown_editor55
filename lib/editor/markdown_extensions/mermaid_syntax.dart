@@ -1,4 +1,4 @@
-﻿import 'package:markdown/markdown.dart';
+import 'package:markdown/markdown.dart';
 
 /// Parses mermaid code blocks: ```mermaid ... ```
 class MermaidBlockSyntax extends FencedCodeBlockSyntax {

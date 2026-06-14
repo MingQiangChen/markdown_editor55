@@ -17,7 +17,7 @@ import 'markdown_preview.dart';
 import 'markdown_text_editor.dart';
 import 'editor_shortcuts.dart';
 import 'find_replace_bar.dart';
-import 'settings_panel.dart';
+import '../settings/settings_panel.dart';
 import 'document_outline.dart';
 
 class EditorScreen extends StatefulWidget {
@@ -50,7 +50,7 @@ class _EditorScreenState extends State<EditorScreen> {
   late ViewMode _viewMode;
   late bool _wordWrap;
   late AppSettings _settings;
-  String _saveStatus = 'ÒÑ±£´æ';
+  String _saveStatus = 'å·²ä¿å­˜';
   List<RecentDocument> _recentDocs = [];
   bool _isDragging = false;
   bool _showFindReplace = false;
@@ -190,7 +190,7 @@ class _EditorScreenState extends State<EditorScreen> {
     _saveTimer?.cancel();
     setState(() {
       _activeTabId = tabId;
-      _saveStatus = 'ÒÑ±£´æ';
+      _saveStatus = 'å·²ä¿å­˜';
     });
     _activeTab.focusNode.requestFocus();
   }
@@ -247,12 +247,12 @@ class _EditorScreenState extends State<EditorScreen> {
     if (_tabs.length == 1) {
       _detachListener(tab);
       tab.controller.clear();
-      tab.title = 'Î´ÃüÃû';
+      tab.title = 'æœªå‘½å';
       tab.filePath = null;
       tab.isDirty = false;
       _attachListener(tab);
       _saveTimer?.cancel();
-      setState(() => _saveStatus = 'ÒÑ±£´æ');
+      setState(() => _saveStatus = 'å·²ä¿å­˜');
       return;
     }
 
@@ -279,16 +279,16 @@ class _EditorScreenState extends State<EditorScreen> {
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('¹Ø±ÕÎÄµµ'),
-        content: Text('ÎÄµµ "" ÓĞÎ´±£´æµÄ¸ü¸Ä£¬ÊÇ·ñ¹Ø±Õ£¿'),
+        title: const Text('å…³é—­æ–‡æ¡£'),
+        content: Text('æ–‡æ¡£ "" æœ‰æœªä¿å­˜çš„æ›´æ”¹ï¼Œæ˜¯å¦å…³é—­ï¼Ÿ'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('È¡Ïû'),
+            child: const Text('å–æ¶ˆ'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('¹Ø±Õ'),
+            child: const Text('å…³é—­'),
           ),
         ],
       ),
@@ -304,7 +304,7 @@ class _EditorScreenState extends State<EditorScreen> {
       }
     } catch (e) {
       if (mounted) {
-        _showError('´ò¿ªÎÄ¼şÊ§°Ü: ');
+        _showError('æ‰“å¼€æ–‡ä»¶å¤±è´¥: ');
       }
     }
   }
@@ -318,15 +318,15 @@ class _EditorScreenState extends State<EditorScreen> {
 
     final tab = DocumentTab.fromFile(
       id: _nextTabId(),
-      path: result.path,
-      title: result.name,
+      filePath: result.path,
+      fileName: result.name,
       content: result.content,
     );
     _attachListener(tab);
     setState(() {
       _tabs.add(tab);
       _activeTabId = tab.id;
-      _saveStatus = 'ÒÑ±£´æ';
+      _saveStatus = 'å·²ä¿å­˜';
     });
     await _addToRecent(result.path, result.name);
   }
@@ -338,6 +338,7 @@ class _EditorScreenState extends State<EditorScreen> {
           path: path,
           name: name,
           content: null,
+          lastOpened: DateTime.now(),
         ),
       );
       await _loadRecentDocs();
@@ -356,7 +357,7 @@ class _EditorScreenState extends State<EditorScreen> {
         if (mounted) {
           setState(() {
             _activeTab.isDirty = false;
-            _saveStatus = 'ÒÑ±£´æ';
+            _saveStatus = 'å·²ä¿å­˜';
           });
         }
       } else {
@@ -369,7 +370,7 @@ class _EditorScreenState extends State<EditorScreen> {
             _activeTab.title = name;
             _activeTab.filePath = path;
             _activeTab.isDirty = false;
-            _saveStatus = 'ÒÑ±£´æ';
+            _saveStatus = 'å·²ä¿å­˜';
           });
           await _addToRecent(path, name);
         } else if (mounted) {
@@ -378,7 +379,7 @@ class _EditorScreenState extends State<EditorScreen> {
       }
     } catch (e) {
       if (mounted) {
-        _showError('±£´æÊ§°Ü: ');
+        _showError('ä¿å­˜å¤±è´¥: ');
       }
     }
   }
@@ -389,7 +390,7 @@ class _EditorScreenState extends State<EditorScreen> {
     setState(() {
       _tabs.add(tab);
       _activeTabId = tab.id;
-      _saveStatus = 'ÒÑ±£´æ';
+      _saveStatus = 'å·²ä¿å­˜';
     });
   }
 
@@ -401,7 +402,7 @@ class _EditorScreenState extends State<EditorScreen> {
       }
     } catch (e) {
       if (mounted) {
-        _showError('´ò¿ªÎÄ¼şÊ§°Ü: ');
+        _showError('æ‰“å¼€æ–‡ä»¶å¤±è´¥: ');
       }
     }
   }
@@ -410,12 +411,12 @@ class _EditorScreenState extends State<EditorScreen> {
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('´íÎó'),
+        title: const Text('é”™è¯¯'),
         content: Text(message),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('È·¶¨'),
+            child: const Text('ç¡®å®š'),
           ),
         ],
       ),
@@ -429,8 +430,10 @@ class _EditorScreenState extends State<EditorScreen> {
     try {
       final html = markdownToHtmlPage(
         _activeTab.controller.text,
-        _activeTab.title,
-        options: options,
+        title: _activeTab.title,
+        template: options.template,
+        enableKatex: options.enableKatex,
+        enableMermaid: options.enableMermaid,
       );
       final path = await widget.fileService.exportFile(
         html,
@@ -438,11 +441,11 @@ class _EditorScreenState extends State<EditorScreen> {
         ['html'],
       );
       if (path != null && mounted) {
-        setState(() => _saveStatus = 'ÒÑµ¼³ö');
+        setState(() => _saveStatus = 'å·²å¯¼å‡º');
       }
     } catch (e) {
       if (mounted) {
-        _showError('µ¼³ö HTML Ê§°Ü: ');
+        _showError('å¯¼å‡º HTML å¤±è´¥: ');
       }
     }
   }
@@ -454,15 +457,17 @@ class _EditorScreenState extends State<EditorScreen> {
     try {
       await shareAsPdf(
         _activeTab.controller.text,
-        _activeTab.title,
-        options: options,
+        filename: _activeTab.title,
+        template: options.template,
+        enableKatex: options.enableKatex,
+        enableMermaid: options.enableMermaid,
       );
       if (mounted) {
-        setState(() => _saveStatus = 'ÒÑµ¼³ö');
+        setState(() => _saveStatus = 'å·²å¯¼å‡º');
       }
     } catch (e) {
       if (mounted) {
-        _showError('µ¼³ö PDF Ê§°Ü: ');
+        _showError('å¯¼å‡º PDF å¤±è´¥: ');
       }
     }
   }
@@ -546,7 +551,9 @@ class _EditorScreenState extends State<EditorScreen> {
       onLink: () => _wrapSelection('[', '](https://example.com)'),
       onSave: _saveFile,
       onOpen: _openFile,
-      onNew: _newDocument,
+      onNewDocument: _newDocument,
+      onCycleViewMode: _cycleViewMode,
+      onToggleWordWrap: _toggleWordWrap,
       onFind: _toggleFindReplace,
       onTogglePreview: _cycleViewMode,
       onNextTab: _nextTab,
@@ -564,7 +571,7 @@ class _EditorScreenState extends State<EditorScreen> {
                 }
               } catch (e) {
                 if (mounted) {
-                  _showError('´ò¿ªÎÄ¼şÊ§°Ü: ');
+                  _showError('æ‰“å¼€æ–‡ä»¶å¤±è´¥: ');
                 }
               }
             }
@@ -643,7 +650,7 @@ class _EditorScreenState extends State<EditorScreen> {
             children: [
               IconButton(
                 icon: const Icon(Icons.fullscreen_exit),
-                tooltip: 'ÍË³öÈ«ÆÁ (Esc)',
+                tooltip: 'é€€å‡ºå…¨å± (Esc)',
                 onPressed: _toggleFullScreen,
               ),
               const Spacer(),
@@ -686,17 +693,17 @@ class _EditorScreenState extends State<EditorScreen> {
           children: [
             IconButton(
               icon: const Icon(Icons.folder_open),
-              tooltip: '´ò¿ªÎÄ¼ş',
+              tooltip: 'æ‰“å¼€æ–‡ä»¶',
               onPressed: _openFile,
             ),
             IconButton(
               icon: const Icon(Icons.save),
-              tooltip: '±£´æÎÄ¼ş',
+              tooltip: 'ä¿å­˜æ–‡ä»¶',
               onPressed: _saveFile,
             ),
             PopupMenuButton<String>(
               icon: const Icon(Icons.file_download),
-              tooltip: 'µ¼³ö',
+              tooltip: 'å¯¼å‡º',
               onSelected: (value) {
                 if (value == 'html') {
                   _exportHtml();
@@ -705,19 +712,19 @@ class _EditorScreenState extends State<EditorScreen> {
                 }
               },
               itemBuilder: (context) => [
-                const PopupMenuItem(value: 'html', child: Text('µ¼³öÎª HTML')),
-                const PopupMenuItem(value: 'pdf', child: Text('µ¼³öÎª PDF')),
+                const PopupMenuItem(value: 'html', child: Text('å¯¼å‡ºä¸º HTML')),
+                const PopupMenuItem(value: 'pdf', child: Text('å¯¼å‡ºä¸º PDF')),
               ],
             ),
             PopupMenuButton<RecentDocument>(
               icon: const Icon(Icons.history),
-              tooltip: '×î½üÎÄµµ',
+              tooltip: 'æœ€è¿‘æ–‡æ¡£',
               onSelected: _openRecent,
               itemBuilder: (context) => [
                 if (_recentDocs.isEmpty)
                   const PopupMenuItem(
                     enabled: false,
-                    child: Text('ÔİÎŞ×î½üÎÄµµ'),
+                    child: Text('æš‚æ— æœ€è¿‘æ–‡æ¡£'),
                   )
                 else
                   ..._recentDocs.map(
@@ -730,21 +737,21 @@ class _EditorScreenState extends State<EditorScreen> {
             ),
             const VerticalDivider(width: 1),
             Tooltip(
-              message: '²éÕÒºÍÌæ»»',
+              message: 'æŸ¥æ‰¾å’Œæ›¿æ¢',
               child: IconButton(
                 icon: const Icon(Icons.search),
                 onPressed: _toggleFindReplace,
               ),
             ),
             Tooltip(
-              message: 'ÎÄµµ´ó¸Ù',
+              message: 'æ–‡æ¡£å¤§çº²',
               child: IconButton(
                 icon: const Icon(Icons.list),
                 onPressed: _toggleOutline,
               ),
             ),
             Tooltip(
-              message: 'ĞÂ½¨ÎÄµµ',
+              message: 'æ–°å»ºæ–‡æ¡£',
               child: IconButton(
                 icon: const Icon(Icons.add),
                 onPressed: _newDocument,
@@ -752,9 +759,9 @@ class _EditorScreenState extends State<EditorScreen> {
             ),
             Tooltip(
               message: switch (_viewMode) {
-                ViewMode.editorOnly => 'ÇĞ»»µ½·ÖÆÁ',
-                ViewMode.split => 'ÇĞ»»µ½Ô¤ÀÀ',
-                ViewMode.previewOnly => 'ÇĞ»»µ½±à¼­',
+                ViewMode.editorOnly => 'åˆ‡æ¢åˆ°åˆ†å±',
+                ViewMode.split => 'åˆ‡æ¢åˆ°é¢„è§ˆ',
+                ViewMode.previewOnly => 'åˆ‡æ¢åˆ°ç¼–è¾‘',
               },
               child: IconButton(
                 icon: Icon(switch (_viewMode) {
@@ -766,14 +773,14 @@ class _EditorScreenState extends State<EditorScreen> {
               ),
             ),
             Tooltip(
-              message: _wordWrap ? '¹Ø±Õ×Ô¶¯»»ĞĞ' : '¿ªÆô×Ô¶¯»»ĞĞ',
+              message: _wordWrap ? 'å…³é—­è‡ªåŠ¨æ¢è¡Œ' : 'å¼€å¯è‡ªåŠ¨æ¢è¡Œ',
               child: IconButton(
                 icon: Icon(_wordWrap ? Icons.wrap_text : Icons.text_format),
                 onPressed: _toggleWordWrap,
               ),
             ),
             Tooltip(
-              message: _isFullScreen ? 'ÍË³öÈ«ÆÁ' : 'È«ÆÁÄ£Ê½',
+              message: _isFullScreen ? 'é€€å‡ºå…¨å±' : 'å…¨å±æ¨¡å¼',
               child: IconButton(
                 icon: Icon(_isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen),
                 onPressed: _toggleFullScreen,
@@ -781,7 +788,7 @@ class _EditorScreenState extends State<EditorScreen> {
             ),
             const Spacer(),
             Tooltip(
-              message: 'ÉèÖÃ',
+              message: 'è®¾ç½®',
               child: IconButton(
                 icon: const Icon(Icons.settings),
                 onPressed: _toggleSettings,

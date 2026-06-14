@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 /// A find and replace bar that overlays the editor.
 class FindReplaceBar extends StatefulWidget {

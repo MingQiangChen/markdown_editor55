@@ -66,7 +66,7 @@ class MarkdownEditorApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'QLaw Markdown �༭��',
+      title: 'QLaw Markdown 编辑器',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
@@ -94,18 +94,18 @@ class MarkdownEditorApp extends StatelessWidget {
   }
 }
 
-const _initialMarkdown = '''# QLaw Markdown �༭��
+const _initialMarkdown = '''# QLaw Markdown 编辑器
 
-�����༭���Ҳ�ʵʱԤ����
+在左侧编辑，右侧实时预览。
 
-## �����嵥
+## 功能清单
 
-- Markdown �༭
-- ʵʱԤ��
-- ��ʽ��������
-- ��Ӧʽ�������ҳ����
+- Markdown 编辑
+- 实时预览
+- 格式化工具栏
+- 响应式桌面和网页布局
 
-> ��һ���������ļ���/����ͱ����ĵ��־û���
+> 下一步：添加文件打开/保存和本地文档持久化。
 
 \\\
 final status = 'prototype ready';
