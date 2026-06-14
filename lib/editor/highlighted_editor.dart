@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import 'markdown_editor_highlighter.dart';
 
@@ -63,42 +63,80 @@ class _HighlightedMarkdownEditorState extends State<HighlightedMarkdownEditor> {
 
     final highlighted = highlightMarkdown(_text, baseStyle, colorScheme);
 
-    return SingleChildScrollView(
-      controller: _scrollController,
-      child: Stack(
-        children: [
-          // Background: syntax-highlighted text (not interactive).
-          IgnorePointer(
-            child: Padding(
-              padding: _contentPadding,
-              child: Text.rich(highlighted),
-            ),
-          ),
-          // Foreground: transparent editable text field.
-          // Note: no expands:true — inside SingleChildScrollView the vertical
-          // constraint is unbounded, so expands would crash ("hasSize" assert).
-          // maxLines:null lets the field grow naturally with content.
-          TextField(
-            controller: widget.controller,
-            focusNode: widget.focusNode,
-            scrollController: _scrollController,
-            maxLines: null,
-            minLines: null,
-            textAlignVertical: TextAlignVertical.top,
-            keyboardType: TextInputType.multiline,
-            style: _baseTextStyle.copyWith(color: Colors.transparent),
-            cursorColor: colorScheme.onSurface,
-            decoration: InputDecoration(
-              border: InputBorder.none,
-              contentPadding: _contentPadding,
-              hintText: 'Write Markdown...',
-              hintStyle: _baseTextStyle.copyWith(
-                color: colorScheme.onSurface.withValues(alpha: 0.35),
+    if (widget.wordWrap) {
+      // Word wrap enabled: vertical scrolling only
+      return SingleChildScrollView(
+        controller: _scrollController,
+        child: Stack(
+          children: [
+            IgnorePointer(
+              child: Padding(
+                padding: _contentPadding,
+                child: Text.rich(highlighted),
               ),
             ),
+            TextField(
+              controller: widget.controller,
+              focusNode: widget.focusNode,
+              scrollController: _scrollController,
+              maxLines: null,
+              minLines: null,
+              textAlignVertical: TextAlignVertical.top,
+              keyboardType: TextInputType.multiline,
+              style: _baseTextStyle.copyWith(color: Colors.transparent),
+              cursorColor: colorScheme.onSurface,
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                contentPadding: _contentPadding,
+                hintText: 'Write Markdown...',
+                hintStyle: _baseTextStyle.copyWith(
+                  color: colorScheme.onSurface.withValues(alpha: 0.35),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      // Word wrap disabled: use wide container to prevent wrapping
+      return SingleChildScrollView(
+        controller: _scrollController,
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SizedBox(
+            width: 3000,
+            child: Stack(
+              children: [
+                IgnorePointer(
+                  child: Padding(
+                    padding: _contentPadding,
+                    child: Text.rich(highlighted, softWrap: false),
+                  ),
+                ),
+                TextField(
+                  controller: widget.controller,
+                  focusNode: widget.focusNode,
+                  scrollController: _scrollController,
+                  maxLines: null,
+                  minLines: null,
+                  textAlignVertical: TextAlignVertical.top,
+                  keyboardType: TextInputType.multiline,
+                  style: _baseTextStyle.copyWith(color: Colors.transparent),
+                  cursorColor: colorScheme.onSurface,
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    contentPadding: _contentPadding,
+                    hintText: 'Write Markdown...',
+                    hintStyle: _baseTextStyle.copyWith(
+                      color: colorScheme.onSurface.withValues(alpha: 0.35),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ],
-      ),
-    );
+        ),
+      );
+    }
   }
 }

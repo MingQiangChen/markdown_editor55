@@ -46,15 +46,30 @@ class _EditorScreenState extends State<EditorScreen> {
   List<RecentDocument> _recentDocs = [];
   bool _isDragging = false;
   bool _showFindReplace = false;
+  final Map<String, VoidCallback> _tabListeners = {};
 
   DocumentTab get _activeTab => _tabs.firstWhere((t) => t.id == _activeTabId);
+
+  void _attachListener(DocumentTab tab) {
+    // ignore: prefer_function_declarations_over_variables
+    final listener = () => _handleDocumentChanged(tab.id);
+    _tabListeners[tab.id] = listener;
+    tab.controller.addListener(listener);
+  }
+
+  void _detachListener(DocumentTab tab) {
+    final listener = _tabListeners.remove(tab.id);
+    if (listener != null) {
+      tab.controller.removeListener(listener);
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     final firstTab = DocumentTab.empty(id: _nextTabId());
     firstTab.controller.text = widget.initialMarkdown;
-    firstTab.controller.addListener(_handleDocumentChanged);
+    _attachListener(firstTab);
     _tabs.add(firstTab);
     _activeTabId = firstTab.id;
     _loadRecentDocs();
@@ -81,13 +96,20 @@ class _EditorScreenState extends State<EditorScreen> {
     super.dispose();
   }
 
-  void _handleDocumentChanged() {
+  void _handleDocumentChanged(String tabId) {
+    final tabIndex = _tabs.indexWhere((t) => t.id == tabId);
+    if (tabIndex == -1) return;
+
     setState(() => _saveStatus = 'Saving...');
-    _activeTab.isDirty = true;
+    _tabs[tabIndex].isDirty = true;
     _saveTimer?.cancel();
     _saveTimer = Timer(const Duration(milliseconds: 500), () async {
+      final currentIndex = _tabs.indexWhere((t) => t.id == tabId);
+      if (currentIndex == -1) return;
       try {
-        await widget.documentStore.saveDraft(_activeTab.controller.text);
+        await widget.documentStore.saveDraft(
+          _tabs[currentIndex].controller.text,
+        );
         if (mounted) {
           setState(() => _saveStatus = 'Saved');
         }
@@ -101,6 +123,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
   void _switchTab(String tabId) {
     if (tabId == _activeTabId) return;
+    _saveTimer?.cancel();
     setState(() {
       _activeTabId = tabId;
       _saveStatus = '已保存';
@@ -156,11 +179,14 @@ class _EditorScreenState extends State<EditorScreen> {
     }
 
     if (_tabs.length == 1) {
+      _detachListener(tab);
       tab.controller.clear();
       tab.title = '未命名';
       tab.filePath = null;
       tab.isDirty = false;
-      setState(() {});
+      _attachListener(tab);
+      _saveTimer?.cancel();
+      setState(() => _saveStatus = '已保存');
       return;
     }
 
@@ -173,7 +199,7 @@ class _EditorScreenState extends State<EditorScreen> {
       }
     }
 
-    tab.controller.removeListener(_handleDocumentChanged);
+    _detachListener(tab);
     tab.dispose();
     setState(() {
       _tabs.removeAt(tabIndex);
@@ -207,7 +233,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
   void _newTab() {
     final tab = DocumentTab.empty(id: _nextTabId());
-    tab.controller.addListener(_handleDocumentChanged);
+    _attachListener(tab);
     setState(() {
       _tabs.add(tab);
       _activeTabId = tab.id;
@@ -248,7 +274,7 @@ class _EditorScreenState extends State<EditorScreen> {
       fileName: result.name,
       content: result.content,
     );
-    tab.controller.addListener(_handleDocumentChanged);
+    _attachListener(tab);
     setState(() {
       _tabs.add(tab);
       _activeTabId = tab.id;
@@ -297,20 +323,33 @@ class _EditorScreenState extends State<EditorScreen> {
 
   Future<void> _saveFile() async {
     try {
-      final path = await widget.fileService.saveFileAs(
-        _activeTab.controller.text,
-      );
-      if (path != null && mounted) {
-        final name = path.split('/').last.split('\\').last;
-        setState(() {
-          _activeTab.title = name;
-          _activeTab.filePath = path;
-          _activeTab.isDirty = false;
-          _saveStatus = '已保存';
-        });
-        await _addToRecent(path, name);
-      } else if (mounted) {
-        setState(() => _saveStatus = 'Save cancelled');
+      if (_activeTab.filePath != null) {
+        await widget.fileService.saveFile(
+          _activeTab.controller.text,
+          _activeTab.filePath!,
+        );
+        if (mounted) {
+          setState(() {
+            _activeTab.isDirty = false;
+            _saveStatus = '已保存';
+          });
+        }
+      } else {
+        final path = await widget.fileService.saveFileAs(
+          _activeTab.controller.text,
+        );
+        if (path != null && mounted) {
+          final name = path.split('/').last.split('\\').last;
+          setState(() {
+            _activeTab.title = name;
+            _activeTab.filePath = path;
+            _activeTab.isDirty = false;
+            _saveStatus = '已保存';
+          });
+          await _addToRecent(path, name);
+        } else if (mounted) {
+          setState(() => _saveStatus = 'Save cancelled');
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -378,6 +417,16 @@ class _EditorScreenState extends State<EditorScreen> {
     final selection = controller.selection;
     final text = controller.text;
 
+    if (!selection.isValid || selection.start < 0) {
+      final insertPos = text.length;
+      controller.text = text + before + after;
+      controller.selection = TextSelection.collapsed(
+        offset: insertPos + before.length,
+      );
+      _activeTab.focusNode.requestFocus();
+      return;
+    }
+
     if (selection.isCollapsed) {
       controller.text = text.replaceRange(
         selection.start,
@@ -407,7 +456,9 @@ class _EditorScreenState extends State<EditorScreen> {
     final text = controller.text;
     final cursorPos = controller.selection.baseOffset;
 
-    final lineStart = text.lastIndexOf('\n', cursorPos - 1) + 1;
+    if (cursorPos < 0) return;
+    final searchFrom = cursorPos > 0 ? cursorPos - 1 : 0;
+    final lineStart = text.lastIndexOf('\n', searchFrom) + 1;
     controller.text = text.replaceRange(lineStart, lineStart, prefix);
     controller.selection = TextSelection.collapsed(
       offset: cursorPos + prefix.length,
@@ -418,13 +469,15 @@ class _EditorScreenState extends State<EditorScreen> {
   void _insertBlock(String block) {
     final controller = _activeTab.controller;
     final selection = controller.selection;
-    controller.text = controller.text.replaceRange(
-      selection.start,
-      selection.end,
-      block,
-    );
+    final start =
+        selection.isValid && selection.start >= 0
+            ? selection.start
+            : controller.text.length;
+    final end =
+        selection.isValid && selection.end >= 0 ? selection.end : start;
+    controller.text = controller.text.replaceRange(start, end, block);
     controller.selection = TextSelection.collapsed(
-      offset: selection.start + block.length,
+      offset: start + block.length,
     );
     _activeTab.focusNode.requestFocus();
   }
@@ -690,3 +743,4 @@ class _EditorScreenState extends State<EditorScreen> {
     );
   }
 }
+

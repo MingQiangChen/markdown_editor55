@@ -1,17 +1,18 @@
-import 'package:markdown/markdown.dart';
+﻿import 'package:markdown/markdown.dart';
 
 /// Parses mermaid code blocks: ```mermaid ... ```
 class MermaidBlockSyntax extends FencedCodeBlockSyntax {
   @override
-  Node parse(BlockParser parser) {
+  bool canParse(BlockParser parser) {
+    // Only match code blocks with mermaid info string
+    if (!super.canParse(parser)) return false;
+    
     final infoString = parser.current.content.substring(3).trim();
+    return infoString.toLowerCase() == 'mermaid';
+  }
 
-    // Only handle mermaid code blocks
-    if (infoString.toLowerCase() != 'mermaid') {
-      // Fall back to default code block handling
-      return super.parse(parser);
-    }
-
+  @override
+  Node parse(BlockParser parser) {
     final lines = <String>[];
     parser.advance(); // Skip opening ```
 

@@ -51,7 +51,7 @@ TextSpan highlightMarkdown(
       );
     } else if (line.startsWith('#')) {
       rootChildren.add(
-        _highlightHeading(line, baseStyle, headingColor, metaColor),
+        _highlightHeading(line, baseStyle, headingColor, metaColor, colorScheme),
       );
     } else if (line.startsWith('>')) {
       rootChildren.add(
@@ -91,6 +91,7 @@ TextSpan _highlightHeading(
   TextStyle baseStyle,
   Color headingColor,
   Color metaColor,
+  ColorScheme colorScheme,
 ) {
   final match = RegExp(r'^(#{1,6})\s(.*)').firstMatch(line);
   if (match == null) {
@@ -103,24 +104,24 @@ TextSpan _highlightHeading(
     children: [
       TextSpan(text: markers, style: baseStyle.copyWith(color: metaColor)),
       TextSpan(text: ' ', style: baseStyle),
-      _highlightInline(rest, baseStyle, _headingScheme(headingColor)),
+      _highlightInline(rest, baseStyle, _headingScheme(headingColor, colorScheme)),
     ],
   );
 }
 
 /// Returns a [ColorScheme] clone where [ColorScheme.primary] is replaced so
 /// inline elements inside headings pick up the heading color.
-ColorScheme _headingScheme(Color headingColor) => ColorScheme(
-  brightness: Brightness.light,
+ColorScheme _headingScheme(Color headingColor, ColorScheme originalScheme) => ColorScheme(
+  brightness: originalScheme.brightness,
   primary: headingColor,
-  onPrimary: Colors.white,
+  onPrimary: originalScheme.onPrimary,
   secondary: headingColor,
-  onSecondary: Colors.white,
+  onSecondary: originalScheme.onSecondary,
   tertiary: headingColor,
-  onTertiary: Colors.white,
+  onTertiary: originalScheme.onTertiary,
   error: headingColor,
-  onError: Colors.white,
-  surface: Colors.white,
+  onError: originalScheme.onError,
+  surface: originalScheme.surface,
   onSurface: headingColor,
 );
 
@@ -365,3 +366,7 @@ TextSpan _highlightInline(
   flush();
   return TextSpan(style: baseStyle, children: spans);
 }
+
+
+
+

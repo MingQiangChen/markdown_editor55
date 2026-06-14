@@ -108,14 +108,28 @@ class _FindReplaceBarState extends State<FindReplaceBar> {
 
     final matchPos = _matchIndices[_currentMatchIndex];
     final query = _findController.text;
+    final replacement = _replaceController.text;
     final text = widget.controller.text;
 
     widget.controller.text =
         text.substring(0, matchPos) +
-        _replaceController.text +
+        replacement +
         text.substring(matchPos + query.length);
 
+    // Re-search and keep the current position (or move to next if at end)
+    final previousIndex = _currentMatchIndex;
     _performFind();
+    
+    // Adjust index: if we replaced and there are still matches,
+    // stay at the same position (which is now the next match)
+    if (_matchIndices.isNotEmpty) {
+      setState(() {
+        _currentMatchIndex = previousIndex < _matchIndices.length
+            ? previousIndex
+            : 0;
+      });
+      _scrollToCurrentMatch();
+    }
   }
 
   void _replaceAll() {
@@ -273,3 +287,4 @@ class _FindReplaceBarState extends State<FindReplaceBar> {
     );
   }
 }
+
