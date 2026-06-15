@@ -23,12 +23,19 @@ A Flutter Markdown editor for desktop and web.
 - Full-screen mode for distraction-free editing
 - Enhanced status bar with line and column numbers
 
+## Supported Platforms
+
+- Windows 10/11
+- Linux (Ubuntu 20.04+, Fedora 36+)
+- macOS 10.14+
+- Web (Chrome / Edge)
+
 ## Storage
 
-| Data | Desktop (Windows) | Web |
-| --- | --- | --- |
-| Draft | `%APPDATA%\QLawMarkdown\draft.md` | `localStorage` |
-| Recent files | `%APPDATA%\QLawMarkdown\recent.json` | `localStorage` |
+| Data | Desktop (Windows) | Desktop (Linux) | Desktop (macOS) | Web |
+| --- | --- | --- | --- | --- |
+| Draft | `%APPDATA%\QLawMarkdown\draft.md` | `~/.config/QLawMarkdown/draft.md` | `~/Library/Application Support/QLawMarkdown/draft.md` | `localStorage` |
+| Recent files | `%APPDATA%\QLawMarkdown\recent.json` | `~/.config/QLawMarkdown/recent.json` | `~/Library/Application Support/QLawMarkdown/recent.json` | `localStorage` |
 
 ## Run
 
@@ -49,6 +56,20 @@ For Windows desktop:
 flutter run -d windows
 ```
 
+For Linux desktop (requires GTK 3 dev libraries):
+
+```bash
+# Ubuntu/Debian: sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev
+# Fedora: sudo dnf install clang cmake ninja-build gtk3-devel
+flutter run -d linux
+```
+
+For macOS desktop:
+
+```bash
+flutter run -d macos
+```
+
 ## Verify
 
 ```bash
@@ -59,8 +80,10 @@ flutter test
 
 ## Documentation
 
-- [Setup guide](docs/setup_guide.md) - 安装与启动步�?- [Project manual](docs/project_manual.md) - 使用说明
-- [Technical design](docs/technical_design.md) - 技术设�?
+- [Setup guide](docs/setup_guide.md) - 安装与启动步骤
+- [Project manual](docs/project_manual.md) - 使用说明
+- [Technical design](docs/technical_design.md) - 技术设计
+
 ## Architecture
 
 ```text
