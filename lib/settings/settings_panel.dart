@@ -37,18 +37,13 @@ class _SettingsPanelState extends State<SettingsPanel> {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         border: Border(
-          left: BorderSide(
-            color: Theme.of(context).colorScheme.outlineVariant,
-          ),
+          left: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
         ),
       ),
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text(
-            '设置',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
+          Text('设置', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 16),
           _buildFontSizeSection(context),
           const SizedBox(height: 16),
@@ -102,7 +97,10 @@ class _SettingsPanelState extends State<SettingsPanel> {
             DropdownMenuItem(value: 'Consolas', child: Text('Consolas')),
             DropdownMenuItem(value: 'Courier New', child: Text('Courier New')),
             DropdownMenuItem(value: 'Monaco', child: Text('Monaco')),
-            DropdownMenuItem(value: 'Source Code Pro', child: Text('Source Code Pro')),
+            DropdownMenuItem(
+              value: 'Source Code Pro',
+              child: Text('Source Code Pro'),
+            ),
           ],
           onChanged: (value) {
             _update(_settings.copyWith(fontFamily: value ?? ''));

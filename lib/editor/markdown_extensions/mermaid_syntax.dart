@@ -6,7 +6,7 @@ class MermaidBlockSyntax extends FencedCodeBlockSyntax {
   bool canParse(BlockParser parser) {
     // Only match code blocks with mermaid info string
     if (!super.canParse(parser)) return false;
-    
+
     final infoString = parser.current.content.substring(3).trim();
     return infoString.toLowerCase() == 'mermaid';
   }

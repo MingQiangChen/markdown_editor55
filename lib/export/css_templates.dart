@@ -198,10 +198,208 @@ class CssTemplates {
 ''',
   );
 
+  static const CssTemplate solarizedTemplate = CssTemplate(
+    name: 'Solarized',
+    css: '''
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 2.2em;
+      line-height: 1.7;
+      color: #657b83;
+      background: #fdf6e3;
+      font-size: 15px;
+    }
+    h1, h2, h3, h4 { margin-top: 1.4em; color: #073642; }
+    h1 { font-size: 1.8em; }
+    h2 { font-size: 1.4em; }
+    h3 { font-size: 1.15em; }
+    code {
+      background: #eee8d5;
+      padding: 0.2em 0.4em;
+      border-radius: 3px;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 0.9em;
+      color: #586e75;
+    }
+    pre {
+      background: #eee8d5;
+      padding: 1em 1.2em;
+      border-radius: 6px;
+      overflow-x: auto;
+      line-height: 1.45;
+    }
+    pre code { background: none; padding: 0; }
+    blockquote {
+      border-left: 4px solid #268bd2;
+      padding: 0.5em 1em;
+      margin: 1em 0;
+      background: #eee8d5;
+      color: #586e75;
+    }
+    table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+    th, td { border: 1px solid #93a1a1; padding: 8px 12px; text-align: left; }
+    th { background: #eee8d5; font-weight: 600; color: #073642; }
+    img { max-width: 100%; }
+    hr { border: none; border-top: 1px solid #93a1a1; margin: 2em 0; }
+    a { color: #268bd2; }
+''',
+  );
+
+  static const CssTemplate nordTemplate = CssTemplate(
+    name: 'Nord',
+    css: '''
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 2.2em;
+      line-height: 1.7;
+      color: #d8dee9;
+      background: #2e3440;
+      font-size: 15px;
+    }
+    h1, h2, h3, h4 { margin-top: 1.4em; color: #eceff4; }
+    h1 { font-size: 1.8em; }
+    h2 { font-size: 1.4em; }
+    h3 { font-size: 1.15em; }
+    code {
+      background: #3b4252;
+      padding: 0.2em 0.4em;
+      border-radius: 3px;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 0.9em;
+      color: #88c0d0;
+    }
+    pre {
+      background: #3b4252;
+      padding: 1em 1.2em;
+      border-radius: 6px;
+      overflow-x: auto;
+      line-height: 1.45;
+    }
+    pre code { background: none; padding: 0; }
+    blockquote {
+      border-left: 4px solid #81a1c1;
+      padding: 0.5em 1em;
+      margin: 1em 0;
+      background: #3b4252;
+      color: #d8dee9;
+    }
+    table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+    th, td { border: 1px solid #4c566a; padding: 8px 12px; text-align: left; }
+    th { background: #3b4252; font-weight: 600; color: #eceff4; }
+    img { max-width: 100%; }
+    hr { border: none; border-top: 1px solid #4c566a; margin: 2em 0; }
+    a { color: #88c0d0; }
+''',
+  );
+
+  static const CssTemplate academicTemplate = CssTemplate(
+    name: 'Academic',
+    css: '''
+    body {
+      font-family: 'Palatino Linotype', 'Book Antiqua', Palatino, serif;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 3em;
+      line-height: 1.8;
+      color: #000;
+      font-size: 12pt;
+    }
+    h1, h2, h3, h4 {
+      font-family: 'Times New Roman', Times, serif;
+      margin-top: 2em;
+      font-weight: bold;
+    }
+    h1 { font-size: 16pt; text-align: center; margin-bottom: 1em; }
+    h2 { font-size: 14pt; }
+    h3 { font-size: 12pt; }
+    code {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 10pt;
+    }
+    pre {
+      padding: 1em;
+      overflow-x: auto;
+      line-height: 1.4;
+      border: 1px solid #ccc;
+      background: #f9f9f9;
+    }
+    blockquote {
+      margin: 1.5em 2em;
+      padding-left: 1em;
+      border-left: 2px solid #999;
+      font-style: italic;
+    }
+    table { border-collapse: collapse; width: 100%; margin: 1.5em 0; }
+    th, td { border: 1px solid #000; padding: 8px 12px; text-align: left; }
+    th { font-weight: bold; background: #f0f0f0; }
+    img { max-width: 100%; }
+    hr { border: none; border-top: 1px solid #000; margin: 2em 0; }
+    a { color: #000; text-decoration: underline; }
+''',
+  );
+
+  static const CssTemplate technicalTemplate = CssTemplate(
+    name: 'Technical',
+    css: '''
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2em;
+      line-height: 1.6;
+      color: #333;
+      font-size: 14px;
+    }
+    h1, h2, h3, h4 { margin-top: 1.5em; color: #0066cc; font-weight: 600; }
+    h1 { font-size: 24px; border-bottom: 2px solid #0066cc; padding-bottom: 0.3em; }
+    h2 { font-size: 20px; border-bottom: 1px solid #ddd; padding-bottom: 0.2em; }
+    h3 { font-size: 16px; }
+    code {
+      background: #f5f5f5;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 13px;
+      color: #c7254e;
+    }
+    pre {
+      background: #f8f8f8;
+      padding: 12px;
+      border-radius: 4px;
+      border: 1px solid #e1e1e1;
+      overflow-x: auto;
+      line-height: 1.5;
+    }
+    pre code { background: none; padding: 0; color: inherit; }
+    blockquote {
+      border-left: 4px solid #0066cc;
+      padding: 0.5em 1em;
+      margin: 1em 0;
+      background: #f0f7ff;
+      color: #555;
+    }
+    table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+    th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+    th { background: #0066cc; color: white; font-weight: 600; }
+    tr:nth-child(even) { background: #f9f9f9; }
+    img { max-width: 100%; border: 1px solid #ddd; }
+    hr { border: none; border-top: 1px solid #ddd; margin: 2em 0; }
+    a { color: #0066cc; }
+''',
+  );
+
   static const List<CssTemplate> all = [
     defaultTemplate,
     darkTemplate,
     minimalTemplate,
     githubTemplate,
+    solarizedTemplate,
+    nordTemplate,
+    academicTemplate,
+    technicalTemplate,
   ];
 }

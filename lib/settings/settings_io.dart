@@ -11,8 +11,8 @@ class _FileSettingsStore implements SettingsStore {
         Platform.environment['APPDATA'] ??
         Platform.environment['HOME'] ??
         Directory.current.path;
-    final directory = Directory('QLawMarkdown');
-    return File('settings.json');
+    final directory = Directory('$root${Platform.pathSeparator}QLawMarkdown');
+    return File('${directory.path}${Platform.pathSeparator}settings.json');
   }
 
   @override

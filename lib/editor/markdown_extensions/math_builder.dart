@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:markdown/markdown.dart' as md;
 
-/// Builder for math elements - displays as formatted text
+/// Builder for math elements - displays as formatted text with improved styling
 class MathBuilder extends MarkdownElementBuilder {
   @override
   bool isBlockElement() => true;
@@ -34,14 +34,31 @@ class MathBuilder extends MarkdownElementBuilder {
                 )
                 : null,
       ),
-      child: SelectableText(
-        latex,
-        style: TextStyle(
-          fontFamily: 'Consolas',
-          fontSize: isDisplay ? 14 : 13,
-          height: 1.5,
-          color: theme.colorScheme.onSurface,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (isDisplay)
+            Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: Icon(
+                Icons.functions,
+                size: 16,
+                color: theme.colorScheme.primary.withValues(alpha: 0.6),
+              ),
+            ),
+          Flexible(
+            child: SelectableText(
+              latex,
+              style: TextStyle(
+                fontFamily: 'Consolas',
+                fontSize: isDisplay ? 14 : 13,
+                height: 1.5,
+                color: theme.colorScheme.onSurface,
+                fontStyle: isDisplay ? FontStyle.italic : FontStyle.normal,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

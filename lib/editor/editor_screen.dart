@@ -19,6 +19,12 @@ import 'editor_shortcuts.dart';
 import 'find_replace_bar.dart';
 import '../settings/settings_panel.dart';
 import 'document_outline.dart';
+import '../custom_theme/custom_theme.dart';
+import '../custom_theme/theme_picker.dart';
+import '../table_editor/table_editor.dart';
+import '../task_list/task_list_editor.dart';
+import '../spell_check/spell_checker.dart';
+import '../spell_check/spell_check_overlay.dart';
 
 class EditorScreen extends StatefulWidget {
   const EditorScreen({
@@ -57,6 +63,8 @@ class _EditorScreenState extends State<EditorScreen> {
   bool _showSettings = false;
   bool _showOutline = false;
   bool _isFullScreen = false;
+  CustomTheme _currentTheme = CustomTheme.ocean;
+  bool _enableSpellCheck = false;
   final Map<String, VoidCallback> _tabListeners = {};
 
   DocumentTab get _activeTab => _tabs.firstWhere((t) => t.id == _activeTabId);
@@ -116,6 +124,44 @@ class _EditorScreenState extends State<EditorScreen> {
 
   void _toggleFullScreen() {
     setState(() => _isFullScreen = !_isFullScreen);
+  }
+
+  void _showTableEditor() {
+    showDialog<void>(
+      context: context,
+      builder: (context) => TableEditor(
+        onTableGenerated: (tableMarkdown) {
+          _insertBlock('\n\n' + tableMarkdown);
+        },
+      ),
+    );
+  }
+
+  void _showTaskListEditor() {
+    showDialog<void>(
+      context: context,
+      builder: (context) => TaskListEditor(
+        onTasksGenerated: (tasksMarkdown) {
+          _insertBlock('\n\n' + tasksMarkdown);
+        },
+      ),
+    );
+  }
+
+  void _showThemePicker() {
+    showDialog<void>(
+      context: context,
+      builder: (context) => ThemePicker(
+        currentTheme: _currentTheme,
+        onThemeSelected: (theme) {
+          setState(() => _currentTheme = theme);
+        },
+      ),
+    );
+  }
+
+  void _toggleSpellCheck() {
+    setState(() => _enableSpellCheck = !_enableSpellCheck);
   }
 
   Future<void> _saveSettings(AppSettings newSettings) async {
@@ -784,6 +830,37 @@ class _EditorScreenState extends State<EditorScreen> {
               child: IconButton(
                 icon: Icon(_isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen),
                 onPressed: _toggleFullScreen,
+              ),
+            ),
+            const VerticalDivider(),
+            Tooltip(
+              message: '表格',
+              child: IconButton(
+                icon: const Icon(Icons.table_chart),
+                onPressed: _showTableEditor,
+              ),
+            ),
+            Tooltip(
+              message: '任务列表',
+              child: IconButton(
+                icon: const Icon(Icons.checklist),
+                onPressed: _showTaskListEditor,
+              ),
+            ),
+            Tooltip(
+              message: '主题',
+              child: IconButton(
+                icon: const Icon(Icons.palette),
+                onPressed: _showThemePicker,
+              ),
+            ),
+            Tooltip(
+              message: _enableSpellCheck ? '关闭拼写检查' : '开启拼写检查',
+              child: IconButton(
+                icon: Icon(
+                  _enableSpellCheck ? Icons.spellcheck : Icons.cancel,
+                ),
+                onPressed: _toggleSpellCheck,
               ),
             ),
             const Spacer(),

@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
 
-/// Highlights Markdown syntax using color-only styling.
-///
-/// All returned spans share the same [baseStyle] metrics (font family, size,
-/// height, weight) so the highlighted text aligns perfectly with a transparent
-/// [TextField] overlay.
+final _hrDashRegex = RegExp(r'^-{3,}$');
+final _hrStarRegex = RegExp(r'^\*{3,}$');
+final _hrUnderRegex = RegExp(r'^_{3,}$');
+final _listItemRegex = RegExp(r'^(\s*)([-*+]|\d+\.)\s');
+final _headingRegex = RegExp(r'^(#{1,6})\s(.*)');
+final _blockquoteRegex = RegExp(r'^(>\s?)(.*)');
+final _listDetailRegex = RegExp(r'^(\s*)([-*+]|\d+\.)(\s)(.*)');
+
 TextSpan highlightMarkdown(
   String text,
   TextStyle baseStyle,
   ColorScheme colorScheme,
 ) {
-  if (text.isEmpty) {
-    return TextSpan(text: '', style: baseStyle);
-  }
+  if (text.isEmpty) return TextSpan(text: '', style: baseStyle);
 
   final lines = text.split('\n');
   final rootChildren = <TextSpan>[];
@@ -29,8 +30,7 @@ TextSpan highlightMarkdown(
   for (var i = 0; i < lines.length; i++) {
     final line = lines[i];
 
-    // Fenced code block delimiters.
-    if (line.trimLeft().startsWith('```')) {
+    if (line.trimLeft().startsWith('`')) {
       inCodeBlock = !inCodeBlock;
       rootChildren.add(
         TextSpan(text: line, style: baseStyle.copyWith(color: metaColor)),
@@ -51,7 +51,13 @@ TextSpan highlightMarkdown(
       );
     } else if (line.startsWith('#')) {
       rootChildren.add(
-        _highlightHeading(line, baseStyle, headingColor, metaColor, colorScheme),
+        _highlightHeading(
+          line,
+          baseStyle,
+          headingColor,
+          metaColor,
+          colorScheme,
+        ),
       );
     } else if (line.startsWith('>')) {
       rootChildren.add(
@@ -77,13 +83,13 @@ bool _isHorizontalRule(String line) {
   final trimmed = line.trim();
   if (trimmed.length < 3) return false;
   final noSpaces = trimmed.replaceAll(' ', '');
-  return RegExp(r'^-{3,}$').hasMatch(noSpaces) ||
-      RegExp(r'^\*{3,}$').hasMatch(noSpaces) ||
-      RegExp(r'^_{3,}$').hasMatch(noSpaces);
+  return _hrDashRegex.hasMatch(noSpaces) ||
+      _hrStarRegex.hasMatch(noSpaces) ||
+      _hrUnderRegex.hasMatch(noSpaces);
 }
 
 bool _isListItem(String line) {
-  return RegExp(r'^(\s*)([-*+]|\d+\.)\s').hasMatch(line);
+  return _listItemRegex.hasMatch(line);
 }
 
 TextSpan _highlightHeading(
@@ -93,7 +99,7 @@ TextSpan _highlightHeading(
   Color metaColor,
   ColorScheme colorScheme,
 ) {
-  final match = RegExp(r'^(#{1,6})\s(.*)').firstMatch(line);
+  final match = _headingRegex.firstMatch(line);
   if (match == null) {
     return TextSpan(text: line, style: baseStyle.copyWith(color: headingColor));
   }
@@ -104,26 +110,29 @@ TextSpan _highlightHeading(
     children: [
       TextSpan(text: markers, style: baseStyle.copyWith(color: metaColor)),
       TextSpan(text: ' ', style: baseStyle),
-      _highlightInline(rest, baseStyle, _headingScheme(headingColor, colorScheme)),
+      _highlightInline(
+        rest,
+        baseStyle,
+        _headingScheme(headingColor, colorScheme),
+      ),
     ],
   );
 }
 
-/// Returns a [ColorScheme] clone where [ColorScheme.primary] is replaced so
-/// inline elements inside headings pick up the heading color.
-ColorScheme _headingScheme(Color headingColor, ColorScheme originalScheme) => ColorScheme(
-  brightness: originalScheme.brightness,
-  primary: headingColor,
-  onPrimary: originalScheme.onPrimary,
-  secondary: headingColor,
-  onSecondary: originalScheme.onSecondary,
-  tertiary: headingColor,
-  onTertiary: originalScheme.onTertiary,
-  error: headingColor,
-  onError: originalScheme.onError,
-  surface: originalScheme.surface,
-  onSurface: headingColor,
-);
+ColorScheme _headingScheme(Color headingColor, ColorScheme originalScheme) =>
+    ColorScheme(
+      brightness: originalScheme.brightness,
+      primary: headingColor,
+      onPrimary: originalScheme.onPrimary,
+      secondary: headingColor,
+      onSecondary: originalScheme.onSecondary,
+      tertiary: headingColor,
+      onTertiary: originalScheme.onTertiary,
+      error: headingColor,
+      onError: originalScheme.onError,
+      surface: originalScheme.surface,
+      onSurface: headingColor,
+    );
 
 TextSpan _highlightBlockquote(
   String line,
@@ -131,7 +140,7 @@ TextSpan _highlightBlockquote(
   Color quoteColor,
   ColorScheme colorScheme,
 ) {
-  final match = RegExp(r'^(>\s?)(.*)').firstMatch(line);
+  final match = _blockquoteRegex.firstMatch(line);
   if (match == null) {
     return TextSpan(text: line, style: baseStyle.copyWith(color: quoteColor));
   }
@@ -153,7 +162,7 @@ TextSpan _highlightListItem(
   Color markerColor,
   ColorScheme colorScheme,
 ) {
-  final match = RegExp(r'^(\s*)([-*+]|\d+\.)(\s)(.*)').firstMatch(line);
+  final match = _listDetailRegex.firstMatch(line);
   if (match == null) {
     return _highlightInline(line, baseStyle, colorScheme);
   }
@@ -161,44 +170,24 @@ TextSpan _highlightListItem(
   final marker = match.group(2)!;
   final space = match.group(3)!;
   final rest = match.group(4)!;
-
-  final children = <TextSpan>[
-    TextSpan(text: indent, style: baseStyle),
-    TextSpan(text: marker, style: baseStyle.copyWith(color: markerColor)),
-    TextSpan(text: space, style: baseStyle),
-  ];
-
-  // Task list checkbox.
-  final taskMatch = RegExp(r'^\[([ xX])\]\s(.*)').firstMatch(rest);
-  if (taskMatch != null) {
-    final checkbox = '[${taskMatch.group(1)!}]';
-    final isDone = taskMatch.group(1)!.toLowerCase() == 'x';
-    children.add(
-      TextSpan(
-        text: checkbox,
-        style: baseStyle.copyWith(
-          color:
-              isDone
-                  ? markerColor
-                  : colorScheme.onSurface.withValues(alpha: 0.5),
-        ),
-      ),
-    );
-    children.add(TextSpan(text: ' ', style: baseStyle));
-    children.add(_highlightInline(taskMatch.group(2)!, baseStyle, colorScheme));
-  } else {
-    children.add(_highlightInline(rest, baseStyle, colorScheme));
-  }
-
-  return TextSpan(style: baseStyle, children: children);
+  return TextSpan(
+    style: baseStyle,
+    children: [
+      TextSpan(text: indent, style: baseStyle),
+      TextSpan(text: marker, style: baseStyle.copyWith(color: markerColor)),
+      TextSpan(text: space, style: baseStyle),
+      _highlightInline(rest, baseStyle, colorScheme),
+    ],
+  );
 }
 
-/// Highlights inline Markdown: bold, italic, inline code, links, images.
 TextSpan _highlightInline(
   String text,
   TextStyle baseStyle,
   ColorScheme colorScheme,
 ) {
+  if (text.isEmpty) return TextSpan(text: text, style: baseStyle);
+
   final spans = <TextSpan>[];
   final buffer = StringBuffer();
   var i = 0;
@@ -217,13 +206,12 @@ TextSpan _highlightInline(
   }
 
   while (i < text.length) {
-    // Inline code: `...`
-    if (text[i] == '`') {
+    if (text[i] == '') {
       final end = text.indexOf('`', i + 1);
       if (end != -1) {
         flush();
         spans.add(
-          TextSpan(text: '`', style: baseStyle.copyWith(color: metaColor)),
+          TextSpan(text: '', style: baseStyle.copyWith(color: metaColor)),
         );
         spans.add(
           TextSpan(
@@ -236,14 +224,13 @@ TextSpan _highlightInline(
           ),
         );
         spans.add(
-          TextSpan(text: '`', style: baseStyle.copyWith(color: metaColor)),
+          TextSpan(text: '', style: baseStyle.copyWith(color: metaColor)),
         );
         i = end + 1;
         continue;
       }
     }
 
-    // Image: ![alt](url)
     if (text[i] == '!' && i + 1 < text.length && text[i + 1] == '[') {
       final closeBracket = text.indexOf(']', i + 2);
       if (closeBracket != -1 &&
@@ -279,7 +266,6 @@ TextSpan _highlightInline(
       }
     }
 
-    // Link: [text](url)
     if (text[i] == '[') {
       final closeBracket = text.indexOf(']', i + 1);
       if (closeBracket != -1 &&
@@ -315,7 +301,6 @@ TextSpan _highlightInline(
       }
     }
 
-    // Bold: **...**
     if (text[i] == '*' && i + 1 < text.length && text[i + 1] == '*') {
       final end = text.indexOf('**', i + 2);
       if (end != -1) {
@@ -337,7 +322,6 @@ TextSpan _highlightInline(
       }
     }
 
-    // Italic: *...*
     if (text[i] == '*') {
       final end = text.indexOf('*', i + 1);
       if (end != -1 && end > i + 1) {
@@ -366,7 +350,3 @@ TextSpan _highlightInline(
   flush();
   return TextSpan(style: baseStyle, children: spans);
 }
-
-
-
-

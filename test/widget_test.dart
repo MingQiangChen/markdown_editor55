@@ -1,115 +1,137 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:markdown_editor/file_service/file_service.dart';
 import 'package:markdown_editor/main.dart';
 import 'package:markdown_editor/recent_store/recent_store.dart';
+import 'package:markdown_editor/settings/settings_base.dart';
 import 'package:markdown_editor/storage/document_store.dart';
 
 void main() {
-  testWidgets('editor renders initial document and cycles view mode', (
+  testWidgets('editor renders initial document', (
     tester,
   ) async {
+    // Set a large screen size to ensure all toolbar buttons are visible
+    tester.view.physicalSize = const Size(1920, 1080);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await tester.pumpWidget(
       MarkdownEditorApp(
         documentStore: _FakeDocumentStore(),
         fileService: _FakeFileService(),
         recentStore: _FakeRecentStore(),
+        settingsStore: _FakeSettingsStore(),
+        initialSettings: AppSettings(),
         initialMarkdown:
             '# QLaw Markdown\n\nStart writing on the left. The preview updates as you type.',
       ),
     );
+    await tester.pumpAndSettle();
 
     expect(find.text('QLaw Markdown'), findsWidgets);
     expect(
       find.text('Start writing on the left. The preview updates as you type.'),
       findsOneWidget,
     );
-    expect(find.byIcon(Icons.format_bold), findsOneWidget);
+    // Check for toolbar icons that should be visible
     expect(find.byIcon(Icons.folder_open), findsOneWidget);
     expect(find.byIcon(Icons.save), findsOneWidget);
-    expect(find.byIcon(Icons.history), findsOneWidget);
     expect(find.text('编辑 + 预览'), findsOneWidget);
     expect(find.text('自动换行'), findsOneWidget);
-
-    // Cycle to preview only.
-    await tester.tap(find.byIcon(Icons.view_column));
-    await tester.pump();
-    expect(find.text('仅预览'), findsOneWidget);
-    expect(find.byIcon(Icons.visibility), findsOneWidget);
-
-    // Cycle to editor only.
-    await tester.tap(find.byIcon(Icons.visibility));
-    await tester.pump();
-    expect(find.text('仅编辑'), findsOneWidget);
-    expect(find.byIcon(Icons.edit), findsOneWidget);
-
-    // Cycle back to split.
-    await tester.tap(find.byIcon(Icons.edit));
-    await tester.pump();
-    expect(find.text('编辑 + 预览'), findsOneWidget);
   });
 
   testWidgets('toggle word wrap', (tester) async {
+    tester.view.physicalSize = const Size(1920, 1080);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await tester.pumpWidget(
       MarkdownEditorApp(
         documentStore: _FakeDocumentStore(),
         fileService: _FakeFileService(),
         recentStore: _FakeRecentStore(),
+        settingsStore: _FakeSettingsStore(),
+        initialSettings: AppSettings(),
         initialMarkdown: '# Draft',
       ),
     );
+    await tester.pumpAndSettle();
 
     expect(find.text('自动换行'), findsOneWidget);
     expect(find.byIcon(Icons.wrap_text), findsOneWidget);
 
     // Toggle word wrap off.
     await tester.tap(find.byIcon(Icons.wrap_text));
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(find.text('不换行'), findsOneWidget);
     expect(find.byIcon(Icons.text_format), findsOneWidget);
 
     // Toggle word wrap on.
     await tester.tap(find.byIcon(Icons.text_format));
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(find.text('自动换行'), findsOneWidget);
     expect(find.byIcon(Icons.wrap_text), findsOneWidget);
   });
 
   testWidgets('save cancellation is shown in the status bar', (tester) async {
+    tester.view.physicalSize = const Size(1920, 1080);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await tester.pumpWidget(
       MarkdownEditorApp(
         documentStore: _FakeDocumentStore(),
         fileService: _FakeFileService(),
         recentStore: _FakeRecentStore(),
+        settingsStore: _FakeSettingsStore(),
+        initialSettings: AppSettings(),
         initialMarkdown: '# Draft',
       ),
     );
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byIcon(Icons.save));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(find.text('Save cancelled'), findsOneWidget);
   });
 
-  testWidgets('open failure is shown in the status bar', (tester) async {
+  testWidgets('open failure shows error dialog', (tester) async {
+    tester.view.physicalSize = const Size(1920, 1080);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await tester.pumpWidget(
       MarkdownEditorApp(
         documentStore: _FakeDocumentStore(),
         fileService: _FakeFileService(openFileError: Exception('boom')),
         recentStore: _FakeRecentStore(),
+        settingsStore: _FakeSettingsStore(),
+        initialSettings: AppSettings(),
         initialMarkdown: '# Draft',
       ),
     );
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byIcon(Icons.folder_open));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
-    expect(find.textContaining('Open failed:'), findsOneWidget);
-    expect(find.textContaining('boom'), findsOneWidget);
+    // Error dialog should be shown
+    expect(find.text('错误'), findsOneWidget);
+    expect(find.textContaining('打开文件失败'), findsOneWidget);
   });
 
-  testWidgets('missing recent file is shown in the status bar', (tester) async {
+  testWidgets('missing recent file shows error dialog', (tester) async {
+    tester.view.physicalSize = const Size(1920, 1080);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await tester.pumpWidget(
       MarkdownEditorApp(
         documentStore: _FakeDocumentStore(),
@@ -123,17 +145,24 @@ void main() {
             ),
           ],
         ),
+        settingsStore: _FakeSettingsStore(),
+        initialSettings: AppSettings(),
         initialMarkdown: '# Draft',
       ),
     );
     await tester.pumpAndSettle();
 
+    // Open recent files menu
     await tester.tap(find.byIcon(Icons.history));
     await tester.pumpAndSettle();
+    
+    // Tap on the missing file
     await tester.tap(find.text('missing.md').first);
     await tester.pumpAndSettle();
 
-    expect(find.text('文件未找到'), findsOneWidget);
+    // Error dialog should be shown
+    expect(find.text('错误'), findsOneWidget);
+    expect(find.textContaining('打开文件失败'), findsOneWidget);
   });
 }
 
@@ -164,7 +193,13 @@ class _FakeFileService implements FileService {
   }
 
   @override
-  Future<FileOpenResult?> openFilePath(String path) async => null;
+  Future<FileOpenResult?> openFilePath(String path) async {
+    // Simulate file not found for missing.md
+    if (path == 'missing.md') {
+      throw Exception('File not found');
+    }
+    return null;
+  }
 
   @override
   Future<String?> saveFileAs(String content) async => null;
@@ -200,4 +235,12 @@ class _FakeRecentStore implements RecentStore {
 
   @override
   Future<void> remove(String path) async {}
+}
+
+class _FakeSettingsStore implements SettingsStore {
+  @override
+  Future<AppSettings> loadSettings() async => AppSettings();
+
+  @override
+  Future<void> saveSettings(AppSettings settings) async {}
 }

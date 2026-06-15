@@ -85,9 +85,9 @@ class _StatusBarState extends State<StatusBar> {
   @override
   Widget build(BuildContext context) {
     final viewModeText = switch (widget.viewMode) {
-      ViewMode.editorOnly => '仅编辑',
-      ViewMode.split => '编辑 + 预览',
-      ViewMode.previewOnly => '仅预览',
+      ViewMode.editorOnly => '\u4ec5\u7f16\u8f91',
+      ViewMode.split => '\u7f16\u8f91 + \u9884\u89c8',
+      ViewMode.previewOnly => '\u4ec5\u9884\u89c8',
     };
 
     return Material(
@@ -105,14 +105,14 @@ class _StatusBarState extends State<StatusBar> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(width: 12),
-                Text('·'),
+                Text('\u00b7'),
                 const SizedBox(width: 12),
               ],
-              Text('行 , 列 '),
+              Text('$_line \u884c, $_column \u5217'),
               const SizedBox(width: 16),
-              Text('\ 词'),
+              Text('${widget.stats.words} \u8bcd'),
               const SizedBox(width: 16),
-              Text('\ 字符'),
+              Text('${widget.stats.characters} \u5b57\u7b26'),
               const SizedBox(width: 16),
               Expanded(
                 child: Row(
@@ -134,11 +134,11 @@ class _StatusBarState extends State<StatusBar> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    const Text('·'),
+                    const Text('\u00b7'),
                     const SizedBox(width: 12),
                     Flexible(
                       child: Text(
-                        widget.wordWrap ? '自动换行' : '不换行',
+                        widget.wordWrap ? '\u81ea\u52a8\u6362\u884c' : '\u4e0d\u6362\u884c',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),

@@ -119,14 +119,13 @@ class _FindReplaceBarState extends State<FindReplaceBar> {
     // Re-search and keep the current position (or move to next if at end)
     final previousIndex = _currentMatchIndex;
     _performFind();
-    
+
     // Adjust index: if we replaced and there are still matches,
     // stay at the same position (which is now the next match)
     if (_matchIndices.isNotEmpty) {
       setState(() {
-        _currentMatchIndex = previousIndex < _matchIndices.length
-            ? previousIndex
-            : 0;
+        _currentMatchIndex =
+            previousIndex < _matchIndices.length ? previousIndex : 0;
       });
       _scrollToCurrentMatch();
     }
@@ -287,4 +286,3 @@ class _FindReplaceBarState extends State<FindReplaceBar> {
     );
   }
 }
-

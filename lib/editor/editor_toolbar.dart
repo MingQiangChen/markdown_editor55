@@ -37,11 +37,7 @@ class EditorToolbar extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         child: Row(
           children: [
-            _ToolButton(
-              icon: Icons.title,
-              label: '标题',
-              onPressed: onHeading,
-            ),
+            _ToolButton(icon: Icons.title, label: '标题', onPressed: onHeading),
             _ToolButton(
               icon: Icons.format_bold,
               label: '粗体',
@@ -52,11 +48,7 @@ class EditorToolbar extends StatelessWidget {
               label: '斜体',
               onPressed: onItalic,
             ),
-            _ToolButton(
-              icon: Icons.code,
-              label: '行内代码',
-              onPressed: onCode,
-            ),
+            _ToolButton(icon: Icons.code, label: '行内代码', onPressed: onCode),
             _ToolButton(icon: Icons.link, label: '链接', onPressed: onLink),
             _ToolButton(
               icon: Icons.format_quote,

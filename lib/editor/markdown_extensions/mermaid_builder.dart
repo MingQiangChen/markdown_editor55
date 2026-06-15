@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:markdown/markdown.dart' as md;
 
-/// Builder for mermaid diagram elements
+/// Builder for mermaid diagram elements - displays as formatted code block
 class MermaidBuilder extends MarkdownElementBuilder {
   @override
   bool isBlockElement() => true;
@@ -65,12 +65,24 @@ class MermaidBuilder extends MarkdownElementBuilder {
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            'Note: Mermaid diagrams are displayed as code. To view the rendered diagram, use a Markdown viewer that supports Mermaid.',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              fontStyle: FontStyle.italic,
-            ),
+          Row(
+            children: [
+              Icon(
+                Icons.info_outline,
+                size: 14,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  'Mermaid diagrams are rendered in HTML export.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

@@ -107,7 +107,5 @@ const _initialMarkdown = '''# QLaw Markdown 编辑器
 
 > 下一步：添加文件打开/保存和本地文档持久化。
 
-\\\
 final status = 'prototype ready';
-\\\
 ''';

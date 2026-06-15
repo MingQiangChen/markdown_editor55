@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'markdown_editor_highlighter.dart';
@@ -29,6 +30,8 @@ class HighlightedMarkdownEditor extends StatefulWidget {
 class _HighlightedMarkdownEditorState extends State<HighlightedMarkdownEditor> {
   final ScrollController _scrollController = ScrollController();
   String _text = '';
+  TextSpan? _cachedHighlight;
+  Timer? _highlightTimer;
 
   static const EdgeInsets _contentPadding = EdgeInsets.all(18);
   static const TextStyle _defaultTextStyle = TextStyle(
@@ -36,6 +39,8 @@ class _HighlightedMarkdownEditorState extends State<HighlightedMarkdownEditor> {
     fontSize: 15,
     height: 1.45,
   );
+
+  static const Duration _highlightDebounce = Duration(milliseconds: 150);
 
   TextStyle get _baseTextStyle {
     return widget.textStyle ?? _defaultTextStyle;
@@ -50,6 +55,7 @@ class _HighlightedMarkdownEditorState extends State<HighlightedMarkdownEditor> {
 
   @override
   void dispose() {
+    _highlightTimer?.cancel();
     widget.controller.removeListener(_onTextChanged);
     _scrollController.dispose();
     super.dispose();
@@ -59,6 +65,28 @@ class _HighlightedMarkdownEditorState extends State<HighlightedMarkdownEditor> {
     setState(() {
       _text = widget.controller.text;
     });
+    _scheduleHighlight();
+  }
+
+  void _scheduleHighlight() {
+    _highlightTimer?.cancel();
+    _highlightTimer = Timer(_highlightDebounce, () {
+      if (!mounted) return;
+      final theme = Theme.of(context);
+      final colorScheme = theme.colorScheme;
+      final baseStyle = _baseTextStyle.copyWith(color: colorScheme.onSurface);
+      final highlight = highlightMarkdown(_text, baseStyle, colorScheme);
+      if (!mounted) return;
+      setState(() {
+        _cachedHighlight = highlight;
+      });
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _scheduleHighlight();
   }
 
   @override
@@ -67,10 +95,10 @@ class _HighlightedMarkdownEditorState extends State<HighlightedMarkdownEditor> {
     final colorScheme = theme.colorScheme;
     final baseStyle = _baseTextStyle.copyWith(color: colorScheme.onSurface);
 
-    final highlighted = highlightMarkdown(_text, baseStyle, colorScheme);
+    final highlighted =
+        _cachedHighlight ?? highlightMarkdown(_text, baseStyle, colorScheme);
 
     if (widget.wordWrap) {
-      // Word wrap enabled: vertical scrolling only
       return SingleChildScrollView(
         controller: _scrollController,
         child: Stack(
@@ -104,7 +132,6 @@ class _HighlightedMarkdownEditorState extends State<HighlightedMarkdownEditor> {
         ),
       );
     } else {
-      // Word wrap disabled: use wide container to prevent wrapping
       return SingleChildScrollView(
         controller: _scrollController,
         child: SingleChildScrollView(
