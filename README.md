@@ -17,7 +17,7 @@ A Flutter Markdown editor for desktop and web.
 - Dark and light themes
 - Math formula support (inline $...$ and block $...$) with KaTeX rendering in export
 - Mermaid diagram support with Mermaid.js rendering in export
-- Export options dialog with CSS templates (Default, Dark, Minimal, GitHub)
+- Export options dialog with 12 CSS templates (Default, Dark, Minimal, GitHub, Solarized, Nord, Dracula, Academic, Technical, Newspaper, Presentation, Notion)
 - Settings panel with font, view mode, and auto-save preferences
 - Document outline panel for navigation
 - Full-screen mode for distraction-free editing

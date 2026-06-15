@@ -1,4 +1,4 @@
-﻿# QLaw Markdown 使用说明
+# QLaw Markdown 使用说明
 
 ## 项目用途
 QLaw Markdown 是一个本地优先的 Markdown 编辑器。它可以编辑 Markdown、实时预览、打开和保存 `.md` 文件，并导出 HTML 或 PDF。
@@ -235,7 +235,7 @@ Web 模式下保存会触发浏览器下载。
 ## 导出
 
 导出时会弹出选项对话框，可以选择：
-- CSS 模板：Default、Dark、Minimal、GitHub
+- CSS 模板：Default、Dark、Minimal、GitHub、Solarized、Nord、Dracula、Academic、Technical、Newspaper、Presentation、Notion
 - 启用 KaTeX 数学公式渲染
 - 启用 Mermaid 图表渲染
 
