@@ -8,6 +8,9 @@ import 'markdown_editor_highlighter.dart';
 /// Uses an overlay technique: a transparent [TextField] sits on top of a
 /// highlighted [Text.rich] widget. Both share the same scroll controller and
 /// text metrics so the highlighting aligns with the editable text.
+///
+/// For large documents (> [_largeFileLineThreshold] lines), syntax highlighting
+/// is automatically disabled to maintain smooth typing performance.
 class HighlightedMarkdownEditor extends StatefulWidget {
   const HighlightedMarkdownEditor({
     super.key,
@@ -32,6 +35,7 @@ class _HighlightedMarkdownEditorState extends State<HighlightedMarkdownEditor> {
   String _text = '';
   TextSpan? _cachedHighlight;
   Timer? _highlightTimer;
+  bool _isLargeFile = false;
 
   static const EdgeInsets _contentPadding = EdgeInsets.all(18);
   static const TextStyle _defaultTextStyle = TextStyle(
@@ -41,6 +45,8 @@ class _HighlightedMarkdownEditorState extends State<HighlightedMarkdownEditor> {
   );
 
   static const Duration _highlightDebounce = Duration(milliseconds: 150);
+  static const Duration _largeFileHighlightDebounce = Duration(milliseconds: 500);
+  static const int _largeFileLineThreshold = 5000;
 
   TextStyle get _baseTextStyle {
     return widget.textStyle ?? _defaultTextStyle;
@@ -50,6 +56,7 @@ class _HighlightedMarkdownEditorState extends State<HighlightedMarkdownEditor> {
   void initState() {
     super.initState();
     _text = widget.controller.text;
+    _isLargeFile = _countLines(_text) >= _largeFileLineThreshold;
     widget.controller.addListener(_onTextChanged);
   }
 
@@ -61,16 +68,44 @@ class _HighlightedMarkdownEditorState extends State<HighlightedMarkdownEditor> {
     super.dispose();
   }
 
+  static int _countLines(String text) {
+    var count = 1;
+    for (var i = 0; i < text.length; i++) {
+      if (text.codeUnitAt(i) == 0x0A) count++;
+    }
+    return count;
+  }
+
   void _onTextChanged() {
+    final newText = widget.controller.text;
+    final wasLargeFile = _isLargeFile;
+    _isLargeFile = _countLines(newText) >= _largeFileLineThreshold;
+
     setState(() {
-      _text = widget.controller.text;
+      _text = newText;
     });
+
+    if (_isLargeFile && !wasLargeFile) {
+      setState(() {
+        _cachedHighlight = null;
+      });
+    }
+
     _scheduleHighlight();
   }
 
   void _scheduleHighlight() {
     _highlightTimer?.cancel();
-    _highlightTimer = Timer(_highlightDebounce, () {
+
+    if (_isLargeFile) {
+      setState(() {
+        _cachedHighlight = null;
+      });
+      return;
+    }
+
+    final debounce = _isLargeFile ? _largeFileHighlightDebounce : _highlightDebounce;
+    _highlightTimer = Timer(debounce, () {
       if (!mounted) return;
       final theme = Theme.of(context);
       final colorScheme = theme.colorScheme;
@@ -86,7 +121,9 @@ class _HighlightedMarkdownEditorState extends State<HighlightedMarkdownEditor> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _scheduleHighlight();
+    if (!_isLargeFile) {
+      _scheduleHighlight();
+    }
   }
 
   @override
@@ -95,20 +132,26 @@ class _HighlightedMarkdownEditorState extends State<HighlightedMarkdownEditor> {
     final colorScheme = theme.colorScheme;
     final baseStyle = _baseTextStyle.copyWith(color: colorScheme.onSurface);
 
-    final highlighted =
-        _cachedHighlight ?? highlightMarkdown(_text, baseStyle, colorScheme);
+    final TextSpan highlighted;
+    if (_isLargeFile) {
+      highlighted = TextSpan(text: _text, style: baseStyle);
+    } else {
+      highlighted =
+          _cachedHighlight ?? highlightMarkdown(_text, baseStyle, colorScheme);
+    }
 
     if (widget.wordWrap) {
       return SingleChildScrollView(
         controller: _scrollController,
         child: Stack(
           children: [
-            IgnorePointer(
-              child: Padding(
-                padding: _contentPadding,
-                child: Text.rich(highlighted),
+            if (!_isLargeFile)
+              IgnorePointer(
+                child: Padding(
+                  padding: _contentPadding,
+                  child: Text.rich(highlighted),
+                ),
               ),
-            ),
             TextField(
               controller: widget.controller,
               focusNode: widget.focusNode,
@@ -117,11 +160,13 @@ class _HighlightedMarkdownEditorState extends State<HighlightedMarkdownEditor> {
               minLines: null,
               textAlignVertical: TextAlignVertical.top,
               keyboardType: TextInputType.multiline,
-              style: _baseTextStyle.copyWith(color: Colors.transparent),
+              style: _isLargeFile
+                  ? baseStyle
+                  : _baseTextStyle.copyWith(color: Colors.transparent),
               cursorColor: colorScheme.onSurface,
               decoration: InputDecoration(
                 border: InputBorder.none,
-                contentPadding: _contentPadding,
+                contentPadding: _isLargeFile ? _contentPadding : _contentPadding,
                 hintText: 'Write Markdown...',
                 hintStyle: _baseTextStyle.copyWith(
                   color: colorScheme.onSurface.withValues(alpha: 0.35),
@@ -140,12 +185,13 @@ class _HighlightedMarkdownEditorState extends State<HighlightedMarkdownEditor> {
             width: 3000,
             child: Stack(
               children: [
-                IgnorePointer(
-                  child: Padding(
-                    padding: _contentPadding,
-                    child: Text.rich(highlighted, softWrap: false),
+                if (!_isLargeFile)
+                  IgnorePointer(
+                    child: Padding(
+                      padding: _contentPadding,
+                      child: Text.rich(highlighted, softWrap: false),
+                    ),
                   ),
-                ),
                 TextField(
                   controller: widget.controller,
                   focusNode: widget.focusNode,
@@ -154,7 +200,9 @@ class _HighlightedMarkdownEditorState extends State<HighlightedMarkdownEditor> {
                   minLines: null,
                   textAlignVertical: TextAlignVertical.top,
                   keyboardType: TextInputType.multiline,
-                  style: _baseTextStyle.copyWith(color: Colors.transparent),
+                  style: _isLargeFile
+                      ? baseStyle
+                      : _baseTextStyle.copyWith(color: Colors.transparent),
                   cursorColor: colorScheme.onSurface,
                   decoration: InputDecoration(
                     border: InputBorder.none,

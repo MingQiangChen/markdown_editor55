@@ -66,6 +66,7 @@ class _EditorScreenState extends State<EditorScreen> {
   CustomTheme _currentTheme = CustomTheme.ocean;
   bool _enableSpellCheck = false;
   final Map<String, VoidCallback> _tabListeners = {};
+  final Map<String, DocumentStats> _statsCache = {};
 
   DocumentTab get _activeTab => _tabs.firstWhere((t) => t.id == _activeTabId);
 
@@ -686,7 +687,8 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   Widget _buildMainContent(BuildContext context) {
-    final stats = DocumentStats.fromText(_activeTab.controller.text);
+    final stats = _statsCache[_activeTabId] ?? DocumentStats.fromText(_activeTab.controller.text);
+    _statsCache[_activeTabId] = stats;
 
     if (_isFullScreen) {
       return Column(

@@ -9,15 +9,29 @@ class DocumentStats {
   final int characters;
 
   factory DocumentStats.fromText(String text) {
-    final words =
-        text.trim().isEmpty
-            ? 0
-            : text
-                .trim()
-                .split(RegExp(r'\s+'))
-                .where((word) => word.isNotEmpty)
-                .length;
-    return DocumentStats(words: words, characters: text.length);
+    if (text.trim().isEmpty) {
+      return DocumentStats(words: 0, characters: text.length);
+    }
+    var wordCount = 0;
+    var inWord = false;
+    for (var i = 0; i < text.length; i++) {
+      final isWhitespace = _isWhitespace(text.codeUnitAt(i));
+      if (isWhitespace) {
+        if (inWord) {
+          wordCount++;
+          inWord = false;
+        }
+      } else {
+        inWord = true;
+      }
+    }
+    if (inWord) wordCount++;
+    return DocumentStats(words: wordCount, characters: text.length);
+  }
+
+  static bool _isWhitespace(int codeUnit) {
+    return codeUnit == 0x20 || codeUnit == 0x09 ||
+           codeUnit == 0x0A || codeUnit == 0x0D;
   }
 }
 
@@ -63,23 +77,34 @@ class _StatusBarState extends State<StatusBar> {
   void _updateCursorPosition() {
     final text = widget.controller.text;
     final selection = widget.controller.selection;
-    
+
     if (!selection.isValid || selection.start < 0) {
-      setState(() {
-        _line = 1;
-        _column = 1;
-      });
+      if (_line != 1 || _column != 1) {
+        setState(() {
+          _line = 1;
+          _column = 1;
+        });
+      }
       return;
     }
 
     final cursorPos = selection.start;
-    final textBefore = text.substring(0, cursorPos);
-    final lines = textBefore.split('\n');
-    
-    setState(() {
-      _line = lines.length;
-      _column = lines.last.length + 1;
-    });
+    var line = 1;
+    var lastNewline = -1;
+    for (var i = 0; i < cursorPos; i++) {
+      if (text.codeUnitAt(i) == 0x0A) {
+        line++;
+        lastNewline = i;
+      }
+    }
+    final column = cursorPos - lastNewline;
+
+    if (_line != line || _column != column) {
+      setState(() {
+        _line = line;
+        _column = column;
+      });
+    }
   }
 
   @override
@@ -108,11 +133,11 @@ class _StatusBarState extends State<StatusBar> {
                 Text('\u00b7'),
                 const SizedBox(width: 12),
               ],
-              Text('$_line \u884c, $_column \u5217'),
+              Text(' \u884c,  \u5217'),
               const SizedBox(width: 16),
-              Text('${widget.stats.words} \u8bcd'),
+              Text(' \u8bcd'),
               const SizedBox(width: 16),
-              Text('${widget.stats.characters} \u5b57\u7b26'),
+              Text(' \u5b57\u7b26'),
               const SizedBox(width: 16),
               Expanded(
                 child: Row(

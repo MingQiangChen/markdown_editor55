@@ -1,13 +1,63 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 
 import 'markdown_extensions/markdown_extensions.dart';
 import 'markdown_syntax_highlighter.dart';
 
-class MarkdownPreview extends StatelessWidget {
+/// A Markdown preview widget with debounced rendering.
+///
+/// For large documents, rendering is debounced to avoid blocking the UI
+/// during rapid typing. The debounce delay scales with document size.
+class MarkdownPreview extends StatefulWidget {
   const MarkdownPreview({super.key, required this.data});
 
   final String data;
+
+  @override
+  State<MarkdownPreview> createState() => _MarkdownPreviewState();
+}
+
+class _MarkdownPreviewState extends State<MarkdownPreview> {
+  String _renderedData = '';
+  Timer? _debounceTimer;
+
+  static const int _largeDocThreshold = 10000;
+  static const Duration _normalDebounce = Duration(milliseconds: 200);
+  static const Duration _largeDocDebounce = Duration(milliseconds: 500);
+
+  @override
+  void initState() {
+    super.initState();
+    _renderedData = widget.data;
+  }
+
+  @override
+  void didUpdateWidget(MarkdownPreview oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.data != widget.data) {
+      _scheduleRender();
+    }
+  }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    super.dispose();
+  }
+
+  void _scheduleRender() {
+    _debounceTimer?.cancel();
+    final isLargeDoc = widget.data.length > _largeDocThreshold;
+    final delay = isLargeDoc ? _largeDocDebounce : _normalDebounce;
+    _debounceTimer = Timer(delay, () {
+      if (mounted) {
+        setState(() {
+          _renderedData = widget.data;
+        });
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +88,7 @@ class MarkdownPreview extends StatelessWidget {
     return ColoredBox(
       color: colorScheme.surface,
       child: Markdown(
-        data: data.isEmpty ? 'Preview will appear here.' : data,
+        data: _renderedData.isEmpty ? 'Preview will appear here.' : _renderedData,
         selectable: true,
         styleSheet: styleSheet,
         syntaxHighlighter: MarkdownSyntaxHighlighter(colorScheme: colorScheme),
