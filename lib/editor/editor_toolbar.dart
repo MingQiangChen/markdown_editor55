@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 class EditorToolbar extends StatelessWidget {
   const EditorToolbar({
@@ -14,6 +14,7 @@ class EditorToolbar extends StatelessWidget {
     required this.onInlineMath,
     required this.onBlockMath,
     required this.onMermaid,
+    required this.onInsertImage,
   });
 
   final VoidCallback onBold;
@@ -27,6 +28,7 @@ class EditorToolbar extends StatelessWidget {
   final VoidCallback onInlineMath;
   final VoidCallback onBlockMath;
   final VoidCallback onMermaid;
+  final VoidCallback onInsertImage;
 
   @override
   Widget build(BuildContext context) {
@@ -83,6 +85,15 @@ class EditorToolbar extends StatelessWidget {
               icon: Icons.account_tree,
               label: 'Mermaid 图表',
               onPressed: onMermaid,
+            ),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 4),
+              child: VerticalDivider(width: 1),
+            ),
+            _ToolButton(
+              icon: Icons.image,
+              label: '插入图片',
+              onPressed: onInsertImage,
             ),
           ],
         ),

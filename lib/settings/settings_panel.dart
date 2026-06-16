@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import 'settings_base.dart';
 
@@ -7,10 +7,12 @@ class SettingsPanel extends StatefulWidget {
     super.key,
     required this.settings,
     required this.onSave,
+    required this.onClose,
   });
 
   final AppSettings settings;
   final ValueChanged<AppSettings> onSave;
+  final VoidCallback onClose;
 
   @override
   State<SettingsPanel> createState() => _SettingsPanelState();
@@ -43,7 +45,17 @@ class _SettingsPanelState extends State<SettingsPanel> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
           Text('设置', style: Theme.of(context).textTheme.titleMedium),
+              IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: widget.onClose,
+                tooltip: '关闭',
+              ),
+            ],
+          ),
           const SizedBox(height: 16),
           _buildFontSizeSection(context),
           const SizedBox(height: 16),

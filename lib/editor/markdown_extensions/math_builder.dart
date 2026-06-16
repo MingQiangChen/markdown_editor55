@@ -1,9 +1,8 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
-import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:markdown/markdown.dart' as md;
 
-/// Builder for math elements - renders LaTeX formulas using flutter_math_fork
+/// Builder for math elements - renders LaTeX formulas as styled text
 class MathBuilder extends MarkdownElementBuilder {
   @override
   bool isBlockElement() => true;
@@ -19,43 +18,7 @@ class MathBuilder extends MarkdownElementBuilder {
     final isDisplay = element.attributes['display'] == 'true';
     final theme = Theme.of(context);
 
-    // Try to render with flutter_math_fork
-    try {
-      final mathWidget = Math.tex(
-        latex,
-        textStyle: TextStyle(
-          fontSize: isDisplay ? 18 : 16,
-          color: theme.colorScheme.onSurface,
-        ),
-        onError: (error) {
-          // Fallback to displaying raw LaTeX if parsing fails
-          return _buildFallback(latex, isDisplay, theme);
-        },
-      );
-
-      return Container(
-        margin: EdgeInsets.symmetric(
-          vertical: isDisplay ? 16.0 : 2.0,
-          horizontal: isDisplay ? 8.0 : 0.0,
-        ),
-        padding: EdgeInsets.all(isDisplay ? 12.0 : 4.0),
-        decoration: isDisplay
-            ? BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(
-                  color: theme.colorScheme.outline.withValues(alpha: 0.2),
-                ),
-              )
-            : null,
-        child: isDisplay
-            ? Center(child: mathWidget)
-            : mathWidget,
-      );
-    } catch (e) {
-      // Fallback to displaying raw LaTeX
-      return _buildFallback(latex, isDisplay, theme);
-    }
+    return _buildFallback(latex, isDisplay, theme);
   }
 
   Widget _buildFallback(String latex, bool isDisplay, ThemeData theme) {

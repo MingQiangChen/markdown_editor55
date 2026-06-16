@@ -1,5 +1,6 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:desktop_drop/desktop_drop.dart';
+import 'package:cross_file/cross_file.dart';
 
 import 'package:flutter/material.dart';
 
@@ -25,6 +26,13 @@ import '../table_editor/table_editor.dart';
 import '../task_list/task_list_editor.dart';
 import '../spell_check/spell_checker.dart';
 import '../spell_check/spell_check_overlay.dart';
+import '../image_service/image_service.dart';
+import 'insert_image_dialog.dart';
+import '../file_tree/file_tree_panel.dart';
+import 'package:file_picker/file_picker.dart';
+import 'dart:io';
+import '../templates/document_templates.dart';
+import '../cloud_sync/cloud_sync.dart';
 
 class EditorScreen extends StatefulWidget {
   const EditorScreen({
@@ -53,6 +61,7 @@ class _EditorScreenState extends State<EditorScreen> {
   String _activeTabId = '';
   int _tabCounter = 0;
   Timer? _saveTimer;
+  Timer? _autoSaveTimer;
   late ViewMode _viewMode;
   late bool _wordWrap;
   late AppSettings _settings;
@@ -65,6 +74,10 @@ class _EditorScreenState extends State<EditorScreen> {
   bool _isFullScreen = false;
   CustomTheme _currentTheme = CustomTheme.ocean;
   bool _enableSpellCheck = false;
+  bool _showFileTree = false;
+  bool _showSyncSettings = false;
+  SyncConfig _syncConfig = const SyncConfig();
+  late CloudSyncService _syncService;
   final Map<String, VoidCallback> _tabListeners = {};
   final Map<String, DocumentStats> _statsCache = {};
 
@@ -88,6 +101,7 @@ class _EditorScreenState extends State<EditorScreen> {
   void initState() {
     super.initState();
     _settings = widget.initialSettings;
+    _syncService = CloudSyncService(_syncConfig);
     _viewMode = _viewModeFromSettings(_settings.defaultViewMode);
     _wordWrap = _settings.wordWrap;
     
@@ -119,8 +133,74 @@ class _EditorScreenState extends State<EditorScreen> {
     setState(() => _showSettings = !_showSettings);
   }
 
+  void _toggleSyncSettings() {
+    setState(() => _showSyncSettings = !_showSyncSettings);
+  }
+
+  void _onSyncConfigChanged(SyncConfig newConfig) {
+    setState(() => _syncConfig = newConfig);
+  }
+
+  Future<void> _syncCurrentFile() async {
+    if (!_syncConfig.enabled || !_syncConfig.isValid) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请先配置云同步')),
+      );
+      return;
+    }
+
+    final fileName = _activeTab.filePath != null
+        ? _activeTab.filePath!.split(Platform.pathSeparator).last
+        : 'untitled.md';
+    
+    final result = await _syncService.syncFile(fileName, _activeTab.controller.text);
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result.message ?? (result.success ? '同步成功' : '同步失败')),
+          backgroundColor: result.success ? Colors.green : Colors.red,
+        ),
+      );
+    }
+  }
+
   void _toggleOutline() {
     setState(() => _showOutline = !_showOutline);
+  }
+
+
+  void _showSnippetMenu() {
+    final snippets = {
+      '分割线': '\n\n---\n\n',
+      '目录 (TOC)': '\n\n[TOC]\n\n',
+      '表格模板': '\n\n| 列1 | 列2 | 列3 |\n|------|------|------|\n| 内容 | 内容 | 内容 |\n\n',
+      '任务列表': '\n\n- [ ] 任务 1\n- [ ] 任务 2\n- [x] 已完成任务\n\n',
+      '脚注': '\n\n这是一段带脚注的文本[^1]。\n\n[^1]: 这是脚注内容。\n\n',
+      'HTML 注释': '\n\n<!-- 注释内容 -->\n\n',
+      '定义列表': '\n\n术语 1\n:   定义 1\n\n术语 2\n:   定义 2\n\n',
+      '数学公式块': '\n\n\\\math\nE = mc^2\n\\\\n\n',
+      'Mermaid 流程图': '\n\n\\\mermaid\ngraph TD\n    A[开始] --> B[结束]\n\\\\n\n',
+    };
+
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: snippets.entries.map((entry) {
+            return ListTile(
+              leading: const Icon(Icons.code),
+              title: Text(entry.key),
+              onTap: () {
+                Navigator.pop(context);
+                _insertBlock(entry.value);
+              },
+            );
+          }).toList(),
+        ),
+      ),
+    );
   }
 
   void _toggleFullScreen() {
@@ -164,6 +244,94 @@ class _EditorScreenState extends State<EditorScreen> {
   void _toggleSpellCheck() {
     setState(() => _enableSpellCheck = !_enableSpellCheck);
   }
+  void _toggleFileTree() {
+    setState(() => _showFileTree = !_showFileTree);
+  }
+
+  Future<void> _openFileFromTree(String filePath) async {
+    try {
+      final result = await widget.fileService.openFilePath(filePath);
+      if (result != null && mounted) {
+        await _openFileResult(result);
+      }
+    } catch (e) {
+      if (mounted) {
+        _showError('打开文件失败: ');
+      }
+    }
+  }
+
+  void _showInsertImageDialog() {
+    showDialog<void>(
+      context: context,
+      builder: (context) => InsertImageDialog(
+        onPickFromFile: _pickImageFromFile,
+        onInsertFromUrl: _insertImageFromUrl,
+      ),
+    );
+  }
+
+  Future<void> _pickImageFromFile() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+      );
+      if (result == null || result.files.isEmpty) return;
+      final file = File(result.files.single.path!);
+      final bytes = await file.readAsBytes();
+      final ext = result.files.single.extension ?? 'png';
+
+      final relativePath = await ImageService.saveImage(
+        bytes: bytes,
+        extension: ext,
+        markdownFilePath: _activeTab.filePath,
+      );
+      if (relativePath == null) {
+        if (mounted) _showError('保存图片失败');
+        return;
+      }
+      _insertBlock('\n\n![]()\n\n');
+    } catch (e) {
+      if (mounted) _showError('选择图片失败: $e');
+    }
+  }
+
+  void _insertImageFromUrl(String url, String altText) {
+    final alt = altText.isNotEmpty ? altText : '';
+    _insertBlock('\n\n![]()\n\n');
+  }
+
+  bool _isImageFile(String path) {
+    final lower = path.toLowerCase();
+    return lower.endsWith('.png') ||
+        lower.endsWith('.jpg') ||
+        lower.endsWith('.jpeg') ||
+        lower.endsWith('.gif') ||
+        lower.endsWith('.webp') ||
+        lower.endsWith('.bmp') ||
+        lower.endsWith('.svg');
+  }
+
+  Future<void> _handleDroppedImage(XFile droppedFile) async {
+    try {
+      final file = File(droppedFile.path);
+      final bytes = await file.readAsBytes();
+      final ext = droppedFile.name.split('.').last.toLowerCase();
+
+      final relativePath = await ImageService.saveImage(
+        bytes: bytes,
+        extension: ext,
+        markdownFilePath: _activeTab.filePath,
+      );
+      if (relativePath == null) {
+        if (mounted) _showError('保存图片失败');
+        return;
+      }
+      _insertBlock('\n\n![]()\n\n');
+    } catch (e) {
+      if (mounted) _showError('插入图片失败: $e');
+    }
+  }
 
   Future<void> _saveSettings(AppSettings newSettings) async {
     setState(() => _settings = newSettings);
@@ -201,6 +369,7 @@ class _EditorScreenState extends State<EditorScreen> {
   @override
   void dispose() {
     _saveTimer?.cancel();
+    _autoSaveTimer?.cancel();
     for (final tab in _tabs) {
       tab.dispose();
     }
@@ -235,10 +404,12 @@ class _EditorScreenState extends State<EditorScreen> {
   void _switchTab(String tabId) {
     if (tabId == _activeTabId) return;
     _saveTimer?.cancel();
+    _stopAutoSave();
     setState(() {
       _activeTabId = tabId;
       _saveStatus = '已保存';
     });
+    _startAutoSave();
     _activeTab.focusNode.requestFocus();
   }
 
@@ -394,6 +565,46 @@ class _EditorScreenState extends State<EditorScreen> {
     }
   }
 
+
+  void _startAutoSave() {
+    _autoSaveTimer?.cancel();
+    if (_activeTab.filePath == null) return;
+    
+    final interval = _settings.autoSaveIntervalMs;
+    if (interval <= 0) return;
+    
+    _autoSaveTimer = Timer.periodic(Duration(milliseconds: interval), (_) {
+      _autoSave();
+    });
+  }
+
+  void _stopAutoSave() {
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = null;
+  }
+
+  Future<void> _autoSave() async {
+    if (_activeTab.filePath == null) return;
+    if (!_activeTab.isDirty) return;
+    
+    try {
+      await widget.fileService.saveFile(
+        _activeTab.controller.text,
+        _activeTab.filePath!,
+      );
+      if (mounted) {
+        setState(() {
+          _activeTab.isDirty = false;
+          _saveStatus = '已自动保存';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _saveStatus = '自动保存失败');
+      }
+    }
+  }
+
   Future<void> _saveFile() async {
     try {
       if (_activeTab.filePath != null) {
@@ -429,6 +640,39 @@ class _EditorScreenState extends State<EditorScreen> {
         _showError('保存失败: ');
       }
     }
+  }
+
+
+  void _showTemplateDialog() {
+    showDialog<MapEntry<String, String>>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('选择文档模板'),
+        children: DocumentTemplates.templates.entries.map((entry) {
+          return SimpleDialogOption(
+            onPressed: () => Navigator.pop(context, entry),
+            child: Text(entry.key),
+          );
+        }).toList(),
+      ),
+    ).then((selected) {
+      if (selected != null) {
+        _newDocumentWithTemplate(selected.value);
+      }
+    });
+  }
+
+  void _newDocumentWithTemplate(String content) {
+    final tab = DocumentTab.empty(id: _nextTabId());
+    if (content.isNotEmpty) {
+      tab.controller.text = content;
+    }
+    _attachListener(tab);
+    setState(() {
+      _tabs.add(tab);
+      _activeTabId = tab.id;
+      _saveStatus = '未保存';
+    });
   }
 
   void _newDocument() {
@@ -598,7 +842,7 @@ class _EditorScreenState extends State<EditorScreen> {
       onLink: () => _wrapSelection('[', '](https://example.com)'),
       onSave: _saveFile,
       onOpen: _openFile,
-      onNewDocument: _newDocument,
+      onNewDocument: _showTemplateDialog,
       onCycleViewMode: _cycleViewMode,
       onToggleWordWrap: _toggleWordWrap,
       onFind: _toggleFindReplace,
@@ -610,15 +854,20 @@ class _EditorScreenState extends State<EditorScreen> {
         body: DropTarget(
           onDragDone: (details) async {
             if (details.files.isNotEmpty) {
-              final file = details.files.first;
-              try {
-                final result = await widget.fileService.openFilePath(file.path);
-                if (result != null && mounted) {
-                  await _openFileResult(result);
-                }
-              } catch (e) {
-                if (mounted) {
-                  _showError('打开文件失败: ');
+              for (final droppedFile in details.files) {
+                if (_isImageFile(droppedFile.name)) {
+                  await _handleDroppedImage(droppedFile);
+                } else {
+                  try {
+                    final result = await widget.fileService.openFilePath(droppedFile.path);
+                    if (result != null && mounted) {
+                      await _openFileResult(result);
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      _showError('打开文件失败: ');
+                    }
+                  }
                 }
               }
             }
@@ -636,6 +885,19 @@ class _EditorScreenState extends State<EditorScreen> {
                   child: SettingsPanel(
                     settings: _settings,
                     onSave: _saveSettings,
+                    onClose: _toggleSettings,
+                  ),
+                ),
+              if (_showSyncSettings)
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: SyncSettingsPanel(
+                    config: _syncConfig,
+                    onConfigChanged: _onSyncConfigChanged,
+                    syncService: _syncService,
+                    onClose: _toggleSyncSettings,
                   ),
                 ),
               if (_isDragging)
@@ -701,7 +963,14 @@ class _EditorScreenState extends State<EditorScreen> {
                 tooltip: '退出全屏 (Esc)',
                 onPressed: _toggleFullScreen,
               ),
-              const Spacer(),
+              Tooltip(
+              message: '插入图片',
+              child: IconButton(
+                icon: const Icon(Icons.image),
+                onPressed: _showInsertImageDialog,
+              ),
+            ),
+            const Spacer(),
               Text(
                 _activeTab.title,
                 style: Theme.of(context).textTheme.bodySmall,
@@ -735,7 +1004,7 @@ class _EditorScreenState extends State<EditorScreen> {
           activeTabId: _activeTabId,
           onTabSelected: _switchTab,
           onTabClosed: _closeTab,
-          onNewTab: _newDocument,
+          onNewTab: _showTemplateDialog,
         ),
         Row(
           children: [
@@ -792,6 +1061,13 @@ class _EditorScreenState extends State<EditorScreen> {
               ),
             ),
             Tooltip(
+              message: '文件浏览器',
+              child: IconButton(
+                icon: const Icon(Icons.account_tree),
+                onPressed: _toggleFileTree,
+              ),
+            ),
+            Tooltip(
               message: '文档大纲',
               child: IconButton(
                 icon: const Icon(Icons.list),
@@ -802,7 +1078,7 @@ class _EditorScreenState extends State<EditorScreen> {
               message: '新建文档',
               child: IconButton(
                 icon: const Icon(Icons.add),
-                onPressed: _newDocument,
+                onPressed: _showTemplateDialog,
               ),
             ),
             Tooltip(
@@ -865,7 +1141,39 @@ class _EditorScreenState extends State<EditorScreen> {
                 onPressed: _toggleSpellCheck,
               ),
             ),
+            Tooltip(
+              message: '插入图片',
+              child: IconButton(
+                icon: const Icon(Icons.image),
+                onPressed: _showInsertImageDialog,
+              ),
+            ),
             const Spacer(),
+            Tooltip(
+              message: '云同步',
+              child: IconButton(
+                icon: Icon(
+                  _syncService.status == SyncStatus.syncing
+                      ? Icons.sync
+                      : _syncService.status == SyncStatus.success
+                          ? Icons.cloud_done
+                          : Icons.cloud_upload,
+                  color: _syncService.status == SyncStatus.error
+                      ? Colors.red
+                      : _syncService.status == SyncStatus.success
+                          ? Colors.green
+                          : null,
+                ),
+                onPressed: _syncCurrentFile,
+              ),
+            ),
+            Tooltip(
+              message: '同步设置',
+              child: IconButton(
+                icon: const Icon(Icons.cloud_sync),
+                onPressed: _toggleSyncSettings,
+              ),
+            ),
             Tooltip(
               message: '设置',
               child: IconButton(
@@ -883,6 +1191,10 @@ class _EditorScreenState extends State<EditorScreen> {
         Expanded(
           child: Row(
             children: [
+              if (_showFileTree)
+                FileTreePanel(
+                  onFileSelected: _openFileFromTree,
+                ),
               if (_showOutline)
                 DocumentOutline(
                   text: _activeTab.controller.text,

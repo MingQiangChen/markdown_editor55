@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
 
@@ -14,8 +14,8 @@ Future<void> main() async {
   final fileService = createFileService();
   final recentStore = createRecentStore();
   final settingsStore = createSettingsStore();
-  final savedDraft = await _loadDraftSafely(documentStore);
   final settings = await _loadSettingsSafely(settingsStore);
+  await _clearDraft(documentStore);
 
   runApp(
     MarkdownEditorApp(
@@ -24,17 +24,15 @@ Future<void> main() async {
       recentStore: recentStore,
       settingsStore: settingsStore,
       initialSettings: settings,
-      initialMarkdown: savedDraft ?? _initialMarkdown,
+      initialMarkdown: '',
     ),
   );
 }
 
-Future<String?> _loadDraftSafely(DocumentStore documentStore) async {
+Future<void> _clearDraft(DocumentStore documentStore) async {
   try {
-    return await documentStore.loadDraft();
-  } catch (_) {
-    return null;
-  }
+    await documentStore.saveDraft('');
+  } catch (_) {}
 }
 
 Future<AppSettings> _loadSettingsSafely(SettingsStore settingsStore) async {
@@ -93,19 +91,3 @@ class MarkdownEditorApp extends StatelessWidget {
     );
   }
 }
-
-const _initialMarkdown = '''# QLaw Markdown 编辑器
-
-在左侧编辑，右侧实时预览。
-
-## 功能清单
-
-- Markdown 编辑
-- 实时预览
-- 格式化工具栏
-- 响应式桌面和网页布局
-
-> 下一步：添加文件打开/保存和本地文档持久化。
-
-final status = 'prototype ready';
-''';
