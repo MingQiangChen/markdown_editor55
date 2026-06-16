@@ -11,7 +11,7 @@ QLaw Markdown 是一个本地优先的 Markdown 编辑器。它可以编辑 Mark
 - 打开、保存、另存为 `.md` 文件
 - 多文档标签页
 - 最近文件列表
-- 草稿自动保存和恢复
+- 草稿自动保存
 - HTML 和 PDF 导出
 - 查找和替换
 - 文件拖拽打开
@@ -28,13 +28,14 @@ QLaw Markdown 是一个本地优先的 Markdown 编辑器。它可以编辑 Mark
 - 全屏模式
 - 增强的状态栏（显示行号、列号）
 - 键盘快捷键
+- 云同步支持（WebDAV + 本地备份）
 
 ## 打开项目
 
 项目目录：
-`	ext
+```ext
 E:\markdown\markdown_editor
-`
+```
 
 推荐编辑器：
 - VS Code + Flutter extension
@@ -43,20 +44,20 @@ E:\markdown\markdown_editor
 ## 运行应用
 
 Web：
-`ash
+```bash
 flutter pub get
 flutter run -d web-server --web-hostname=127.0.0.1 --web-port=5173
-`
+```
 
 打开：
-`	ext
+```text
 http://127.0.0.1:5173
-`
+```
 
 Windows 桌面：
-`ash
+```bash
 flutter run -d windows
-`
+```
 
 ## 使用编辑器
 
@@ -75,7 +76,7 @@ flutter run -d windows
 | List | 在当前行插入 `- ` |
 | Code block | 插入 fenced code block |
 | Inline math | 用 $ 包裹选中文本 |
-| Math block | 插入 $$... 块 |
+| Math block | 插入 ... 块 |
 | Mermaid diagram | 插入 mermaid 代码块 |
 
 如果没有选中文本，格式标记会插入到光标位置。
@@ -87,25 +88,10 @@ flutter run -d windows
 | --- | --- |
 | `Ctrl+B` | 加粗 |
 | `Ctrl+I` | 斜体 |
-| `Ctrl+` ` | 行内代码 |
+| `Ctrl+` | 行内代码 |
 | `Ctrl+K` | 插入链接 |
 
-##
-## 设置
-
-点击工具栏的设置图标打开设置面板。
-
-可配置项：
-- **字体大小**：10-24 号
-- **字体**：默认、Consolas、Courier New、Monaco、Source Code Pro
-- **Tab 缩进**：2 或 4 个空格
-- **默认视图模式**：编辑 / 分屏 / 预览
-- **自动换行**：开/关
-- **自动保存间隔**：200-2000 毫秒
-
-设置会立即生效并自动保存。
-
-## 文件操作
+#### 文件操作
 | 快捷键 | 行为 |
 | --- | --- |
 | `Ctrl+S` | 保存（打开 Save As 对话框） |
@@ -152,6 +138,7 @@ flutter run -d windows
 | Recent | 打开最近文件列表 |
 | Find | 打开查找和替换栏 |
 | Settings | 打开设置面板 |
+| Sync Settings | 打开云同步设置面板 |
 | New | 新建文档 |
 | View Mode | 循环切换视图模式（编辑/分屏/预览） |
 | Word Wrap | 切换自动换行 |
@@ -160,10 +147,9 @@ flutter run -d windows
 
 状态栏显示文件名、字数、字符数、保存状态和预览模式。
 示例：
-`	ext
+```text
 filename.md · 150 words · 1200 characters · Saved · Edit + preview · Wrap
-`
-
+```
 
 ## 设置
 
@@ -178,6 +164,26 @@ filename.md · 150 words · 1200 characters · Saved · Edit + preview · Wrap
 - **自动保存间隔**：200-2000 毫秒
 
 设置会立即生效并自动保存。
+
+## 云同步设置
+
+点击工具栏的云同步图标打开同步设置面板。
+
+### 同步方式
+- **WebDAV**：同步到支持 WebDAV 协议的云服务（如坚果云、Nextcloud 等）
+- **本地备份**：同步到本地指定目录
+
+### WebDAV 配置
+- **服务器地址**：WebDAV 服务器 URL
+- **用户名/密码**：认证凭据
+- **远程路径**：云端存储路径
+- **自动同步**：启用后按设定间隔自动同步
+
+### 本地备份配置
+- **备份目录**：可通过输入框手动输入，或点击右侧文件夹图标选择目录
+
+### 同步状态
+面板底部显示同步状态、上次同步时间和同步历史记录。
 
 ## 文件操作
 
@@ -202,7 +208,6 @@ Web 模式下保存会触发浏览器下载。
 - `Ctrl+Tab` / `Ctrl+Shift+Tab` 在标签页间导航
 - `Ctrl+W` 关闭当前标签页
 - 关闭有未保存更改的标签页时会弹出确认对话框
-
 
 ## 文档大纲
 
@@ -248,31 +253,33 @@ Export -> Export as PDF 会打开平台的分享或保存流程。
 ## 自动保存
 
 编辑时会以 500 ms 防抖自动保存草稿。
+
+**注意**：每次启动程序时会清除草稿缓存，显示全新的空白编辑界面。
+
 草稿位置：
-`	ext
+```text
 Windows: %APPDATA%\QLawMarkdown\draft.md
 Web: localStorage key qlaw_markdown.draft
-`
+```
 
 最近文件位置：
-`	ext
+```text
 Windows: %APPDATA%\QLawMarkdown\recent.json
 Web: localStorage key qlaw_markdown.recent
-`
+```
 
 ## 验证项目
 
-`ash
+```bash
 dart format lib test
 flutter analyze
 flutter test
-`
+```
 
 ## 已知限制
-- 暂不支持云同步
 - 数学公式和 Mermaid 图表已支持实时预览（需要网络连接加载 CDN 资源）
 
 ## 后续方向
-- 云同步和冲突处理
 - 更多 CSS 导出模板
 - 大文件性能优化
+- 移动端适配
