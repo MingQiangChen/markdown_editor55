@@ -1,7 +1,5 @@
 ﻿import 'dart:convert';
-import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'sync_config.dart';
 
 /// WebDAV 客户端
 class WebDavClient {
@@ -16,15 +14,33 @@ class WebDavClient {
     required this.password,
   }) : _client = http.Client();
 
-  Map<String, String> get _headers => {
-    'Authorization': 'Basic ',
-  };
+  String get _normalizedBaseUrl {
+    var url = baseUrl.trim();
+    if (url.endsWith('/')) {
+      url = url.substring(0, url.length - 1);
+    }
+    return url;
+  }
+
+  String _buildUrl(String path) {
+    if (path.startsWith('/')) {
+      return '${_normalizedBaseUrl}`';
+    }
+    return '${_normalizedBaseUrl}/$path';
+  }
+
+  Map<String, String> get _headers {
+    final credentials = base64Encode(utf8.encode('${username}:$password'));
+    return {
+      'Authorization': 'Basic $credentials',
+    };
+  }
 
   /// 测试连接
   Future<bool> testConnection() async {
     try {
       final response = await _client.get(
-        Uri.parse(baseUrl),
+        Uri.parse(_normalizedBaseUrl),
         headers: _headers,
       );
       return response.statusCode == 200 || response.statusCode == 207;
@@ -37,7 +53,7 @@ class WebDavClient {
   Future<bool> createDirectory(String path) async {
     try {
       final response = await _client.send(
-        http.Request('MKCOL', Uri.parse(''))
+        http.Request('MKCOL', Uri.parse(_buildUrl(path)))
           ..headers.addAll(_headers),
       );
       return response.statusCode == 201 || response.statusCode == 405;
@@ -50,7 +66,7 @@ class WebDavClient {
   Future<bool> uploadFile(String remotePath, String content) async {
     try {
       final response = await _client.put(
-        Uri.parse(''),
+        Uri.parse(_buildUrl(remotePath)),
         headers: {
           ..._headers,
           'Content-Type': 'text/markdown; charset=utf-8',
@@ -67,11 +83,11 @@ class WebDavClient {
   Future<String?> downloadFile(String remotePath) async {
     try {
       final response = await _client.get(
-        Uri.parse(''),
+        Uri.parse(_buildUrl(remotePath)),
         headers: _headers,
       );
       if (response.statusCode == 200) {
-        return response.body;
+        return utf8.decode(response.bodyBytes);
       }
       return null;
     } catch (e) {
@@ -83,7 +99,7 @@ class WebDavClient {
   Future<bool> deleteFile(String remotePath) async {
     try {
       final response = await _client.delete(
-        Uri.parse(''),
+        Uri.parse(_buildUrl(remotePath)),
         headers: _headers,
       );
       return response.statusCode == 204 || response.statusCode == 200;
@@ -96,7 +112,7 @@ class WebDavClient {
   Future<List<String>> listDirectory(String path) async {
     try {
       final response = await _client.send(
-        http.Request('PROPFIND', Uri.parse(''))
+        http.Request('PROPFIND', Uri.parse(_buildUrl(path)))
           ..headers.addAll({
             ..._headers,
             'Depth': '1',
@@ -130,21 +146,16 @@ class WebDavClient {
       final hrefMatch = hrefRegex.firstMatch(match.group(1)!);
       if (hrefMatch != null) {
         var href = hrefMatch.group(1)!;
-        // 解码 URL 编码
         href = Uri.decodeFull(href);
-        // 移除基础路径，只保留文件名
         if (href.startsWith(basePath)) {
           href = href.substring(basePath.length);
         }
-        // 移除开头的斜杠
         if (href.startsWith('/')) {
           href = href.substring(1);
         }
-        // 移除结尾的斜杠（目录）
         if (href.endsWith('/')) {
           href = href.substring(0, href.length - 1);
         }
-        // 只添加非空的文件名
         if (href.isNotEmpty && !href.contains('/')) {
           files.add(href);
         }

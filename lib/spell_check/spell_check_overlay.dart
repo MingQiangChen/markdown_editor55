@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'spell_checker.dart';
 
 /// Widget that displays text with spell check highlighting
@@ -6,12 +6,14 @@ class SpellCheckOverlay extends StatefulWidget {
   final String text;
   final TextStyle? textStyle;
   final bool enabled;
+  final void Function(int start, int end, String replacement)? onReplace;
 
   const SpellCheckOverlay({
     super.key,
     required this.text,
     this.textStyle,
     this.enabled = true,
+    this.onReplace,
   });
 
   @override
@@ -58,6 +60,10 @@ class _SpellCheckOverlayState extends State<SpellCheckOverlay> {
     setState(() => _misspelledWords = words);
   }
 
+  void _replaceWord(_MisspelledWord misspelled, String replacement) {
+    widget.onReplace?.call(misspelled.start, misspelled.end, replacement);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!widget.enabled || _misspelledWords.isEmpty) {
@@ -71,7 +77,7 @@ class _SpellCheckOverlayState extends State<SpellCheckOverlay> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            '拼写检查 ( 个问题)',
+            '拼写检查: ${_misspelledWords.length} 个问题',
             style: Theme.of(context).textTheme.titleSmall,
           ),
           const SizedBox(height: 8),
@@ -101,9 +107,7 @@ class _SpellCheckOverlayState extends State<SpellCheckOverlay> {
                             children: suggestions.map((s) {
                               return ActionChip(
                                 label: Text(s),
-                                onPressed: () {
-                                  // TODO: Implement replacement
-                                },
+                                onPressed: () => _replaceWord(misspelled, s),
                               );
                             }).toList(),
                           ),

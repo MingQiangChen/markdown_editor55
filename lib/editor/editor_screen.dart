@@ -30,6 +30,8 @@ import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import '../templates/document_templates.dart';
 import '../cloud_sync/cloud_sync.dart';
+import '../spell_check/spell_checker.dart';
+import '../spell_check/spell_check_overlay.dart';
 
 class EditorScreen extends StatefulWidget {
   const EditorScreen({
@@ -241,6 +243,13 @@ class _EditorScreenState extends State<EditorScreen> {
   void _toggleSpellCheck() {
     setState(() => _enableSpellCheck = !_enableSpellCheck);
   }
+
+  void _replaceSpellWord(int start, int end, String replacement) {
+    final controller = _activeTab.controller;
+    controller.text = controller.text.replaceRange(start, end, replacement);
+    _handleDocumentChanged(_activeTab.id);
+  }
+
   void _toggleFileTree() {
     setState(() => _showFileTree = !_showFileTree);
   }
@@ -1212,7 +1221,13 @@ class _EditorScreenState extends State<EditorScreen> {
                     );
 
                     return switch (_viewMode) {
-                      ViewMode.editorOnly => editor,
+                      ViewMode.editorOnly => _enableSpellCheck
+                        ? Column(children: [Expanded(child: editor), SpellCheckOverlay(
+                            text: _activeTab.controller.text,
+                            enabled: _enableSpellCheck,
+                            onReplace: _replaceSpellWord,
+                          )])
+                        : editor,
                       ViewMode.split when compact => PageView(
                         children: [editor, preview],
                       ),
