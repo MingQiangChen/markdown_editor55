@@ -10,7 +10,7 @@ A Flutter Markdown editor for desktop and web.
 - Open, save, and save-as for `.md` files
 - Recent documents list, capped at 10 entries
 - Draft auto-save
-- Export to styled HTML and PDF
+- Export to styled HTML and PDF (with Chinese font support)
 - External file change detection with conflict dialog
 - Responsive layout: split editor/preview on wide screens (>= 600px), paged layout on compact screens
 - Document word and character counts
@@ -23,6 +23,7 @@ A Flutter Markdown editor for desktop and web.
 - Full-screen mode for distraction-free editing
 - Enhanced status bar with line and column numbers
 - Cloud sync support (WebDAV) with local backup option
+- Spell check with suggestions and auto-replacement
 - Fresh start on each launch (no draft restore)
 
 ## Supported Platforms
@@ -97,8 +98,9 @@ lib/
   file_service/                    File open/save/export (IO + Web)
   recent_store/                    Recent documents persistence
   storage/                         Draft auto-save persistence
-  export/                          HTML and PDF export service
+  export/                          HTML and PDF export service (with Chinese font)
   cloud_sync/                      Cloud sync service (WebDAV + local backup)
+  spell_check/                     Spell check with suggestions
 ```
 
 Cross-platform code uses conditional exports (`dart.library.io` / `dart.library.html`).

@@ -12,7 +12,7 @@ QLaw Markdown 是一个本地优先的 Markdown 编辑器。它可以编辑 Mark
 - 多文档标签页
 - 最近文件列表
 - 草稿自动保存
-- HTML 和 PDF 导出
+- HTML 和 PDF 导出（支持中文字体）
 - 查找和替换
 - 文件拖拽打开
 - 外部文件变更检测
@@ -29,11 +29,12 @@ QLaw Markdown 是一个本地优先的 Markdown 编辑器。它可以编辑 Mark
 - 增强的状态栏（显示行号、列号）
 - 键盘快捷键
 - 云同步支持（WebDAV + 本地备份）
+- 拼写检查与建议
 
 ## 打开项目
 
 项目目录：
-```ext
+```
 E:\markdown\markdown_editor
 ```
 
@@ -76,8 +77,9 @@ flutter run -d windows
 | List | 在当前行插入 `- ` |
 | Code block | 插入 fenced code block |
 | Inline math | 用 $ 包裹选中文本 |
-| Math block | 插入 ... 块 |
+| Math block | 插入 $$... 块 |
 | Mermaid diagram | 插入 mermaid 代码块 |
+| Spell Check | 开启/关闭拼写检查 |
 
 如果没有选中文本，格式标记会插入到光标位置。
 
@@ -88,7 +90,7 @@ flutter run -d windows
 | --- | --- |
 | `Ctrl+B` | 加粗 |
 | `Ctrl+I` | 斜体 |
-| `Ctrl+` | 行内代码 |
+| `Ctrl+`` ` | 行内代码 |
 | `Ctrl+K` | 插入链接 |
 
 #### 文件操作
@@ -139,6 +141,7 @@ flutter run -d windows
 | Find | 打开查找和替换栏 |
 | Settings | 打开设置面板 |
 | Sync Settings | 打开云同步设置面板 |
+| Spell Check | 开启/关闭拼写检查 |
 | New | 新建文档 |
 | View Mode | 循环切换视图模式（编辑/分屏/预览） |
 | Word Wrap | 切换自动换行 |
@@ -184,6 +187,16 @@ filename.md · 150 words · 1200 characters · Saved · Edit + preview · Wrap
 
 ### 同步状态
 面板底部显示同步状态、上次同步时间和同步历史记录。
+
+## 拼写检查
+
+点击工具栏的拼写检查图标开启拼写检查功能。
+
+功能：
+- 实时检测英文拼写错误
+- 在编辑器下方显示拼写错误列表
+- 提供拼写建议
+- 点击建议即可自动替换错误单词
 
 ## 文件操作
 
@@ -250,6 +263,12 @@ Export -> Export as HTML 会保存一个带内嵌样式的完整 HTML 页面。
 ### PDF
 Export -> Export as PDF 会打开平台的分享或保存流程。
 
+PDF 导出特性：
+- 支持中文字体（使用 SimHei 黑体）
+- 支持标题、列表、引用、代码块等 Markdown 元素
+- 支持任务列表和有序列表
+- A4 页面格式，32pt 页边距
+
 ## 自动保存
 
 编辑时会以 500 ms 防抖自动保存草稿。
@@ -278,6 +297,7 @@ flutter test
 
 ## 已知限制
 - 数学公式和 Mermaid 图表已支持实时预览（需要网络连接加载 CDN 资源）
+- 拼写检查仅支持英文
 
 ## 后续方向
 - 更多 CSS 导出模板
