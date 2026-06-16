@@ -1,11 +1,34 @@
+import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:markdown/markdown.dart' as md;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 import 'css_templates.dart';
+
+/// 加载中文字体
+Future<pw.Font> _loadChineseFont() async {
+  // 尝试从 assets 加载
+  try {
+    final data = await rootBundle.load('fonts/SimHei.ttf');
+    return pw.Font.ttf(data);
+  } catch (_) {}
+  
+  // 回退：从系统字体加载
+  try {
+    final file = File('C:\\Windows\\Fonts\\simhei.ttf');
+    if (await file.exists()) {
+      final bytes = await file.readAsBytes();
+      return pw.Font.ttf(ByteData.sublistView(bytes));
+    }
+  } catch (_) {}
+  
+  // 最终回退使用默认字体
+  return pw.Font.helvetica();
+}
 
 /// Converts Markdowntext to a complete HTML page.
 String markdownToHtmlPage(
@@ -71,7 +94,7 @@ $body
 </html>''';
 }
 
-/// Converts Markdown to PDF using native PDF generation.
+/// Converts Markdown to PDF using native PDF generation with Chinese font support.
 Future<Uint8List> markdownToPdf(
   String markdown, {
   String? title,
@@ -81,21 +104,25 @@ Future<Uint8List> markdownToPdf(
 }) async {
   final doc = pw.Document();
   
+  // 加载中文字体
+  final chineseFont = await _loadChineseFont();
+  
+  // 定义字体样式
+  final normalStyle = pw.TextStyle(font: chineseFont, fontSize: 12);
+  final boldStyle = pw.TextStyle(font: chineseFont, fontSize: 12, fontWeight: pw.FontWeight.bold);
+  final h1Style = pw.TextStyle(font: chineseFont, fontSize: 20, fontWeight: pw.FontWeight.bold);
+  final h2Style = pw.TextStyle(font: chineseFont, fontSize: 18, fontWeight: pw.FontWeight.bold);
+  final h3Style = pw.TextStyle(font: chineseFont, fontSize: 16, fontWeight: pw.FontWeight.bold);
+  final italicStyle = pw.TextStyle(font: chineseFont, fontSize: 12, fontStyle: pw.FontStyle.italic, color: PdfColors.grey700);
+  final titleStyle = pw.TextStyle(font: chineseFont, fontSize: 24, fontWeight: pw.FontWeight.bold);
+  
   // Parse markdown to extract content
   final lines = markdown.split('\n');
   final widgets = <pw.Widget>[];
   
   // Add title if provided
   if (title != null && title.isNotEmpty) {
-    widgets.add(
-      pw.Text(
-        title,
-        style: pw.TextStyle(
-          fontSize: 24,
-          fontWeight: pw.FontWeight.bold,
-        ),
-      ),
-    );
+    widgets.add(pw.Text(title, style: titleStyle));
     widgets.add(pw.SizedBox(height: 16));
   }
   
@@ -110,28 +137,13 @@ Future<Uint8List> markdownToPdf(
     
     // Headers
     if (trimmed.startsWith('### ')) {
-      widgets.add(
-        pw.Text(
-          trimmed.substring(4),
-          style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
-        ),
-      );
+      widgets.add(pw.Text(trimmed.substring(4), style: h3Style));
       widgets.add(pw.SizedBox(height: 4));
     } else if (trimmed.startsWith('## ')) {
-      widgets.add(
-        pw.Text(
-          trimmed.substring(3),
-          style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
-        ),
-      );
+      widgets.add(pw.Text(trimmed.substring(3), style: h2Style));
       widgets.add(pw.SizedBox(height: 4));
     } else if (trimmed.startsWith('# ')) {
-      widgets.add(
-        pw.Text(
-          trimmed.substring(2),
-          style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
-        ),
-      );
+      widgets.add(pw.Text(trimmed.substring(2), style: h1Style));
       widgets.add(pw.SizedBox(height: 4));
     }
     // List items
@@ -140,17 +152,28 @@ Future<Uint8List> markdownToPdf(
         pw.Row(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            pw.Text('• ', style: const pw.TextStyle(fontSize: 12)),
-            pw.Expanded(
-              child: pw.Text(
-                trimmed.substring(2),
-                style: const pw.TextStyle(fontSize: 12),
-              ),
-            ),
+            pw.Text('- ', style: normalStyle),
+            pw.Expanded(child: pw.Text(trimmed.substring(2), style: normalStyle)),
           ],
         ),
       );
       widgets.add(pw.SizedBox(height: 2));
+    }
+    // Numbered list
+    else if (RegExp(r'^\d+\.\s').hasMatch(trimmed)) {
+      final match = RegExp(r'^(\d+\.)\s(.*)$').firstMatch(trimmed);
+      if (match != null) {
+        widgets.add(
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text('${match.group(1)} ', style: normalStyle),
+              pw.Expanded(child: pw.Text(match.group(2)!, style: normalStyle)),
+            ],
+          ),
+        );
+        widgets.add(pw.SizedBox(height: 2));
+      }
     }
     // Blockquotes
     else if (trimmed.startsWith('> ')) {
@@ -158,41 +181,45 @@ Future<Uint8List> markdownToPdf(
         pw.Container(
           padding: const pw.EdgeInsets.all(8),
           decoration: pw.BoxDecoration(
-            border: pw.Border(
-              left: pw.BorderSide(color: PdfColors.grey, width: 3),
-            ),
+            border: pw.Border(left: pw.BorderSide(color: PdfColors.grey, width: 3)),
           ),
-          child: pw.Text(
-            trimmed.substring(2),
-            style: pw.TextStyle(
-              fontSize: 12,
-              fontStyle: pw.FontStyle.italic,
-              color: PdfColors.grey700,
-            ),
-          ),
+          child: pw.Text(trimmed.substring(2), style: italicStyle),
         ),
       );
       widgets.add(pw.SizedBox(height: 4));
     }
     // Code blocks
     else if (trimmed.startsWith('```')) {
-      // Skip code fence markers
       continue;
+    }
+    // Horizontal rule
+    else if (trimmed == '---' || trimmed == '***' || trimmed == '___') {
+      widgets.add(pw.Divider());
+      widgets.add(pw.SizedBox(height: 8));
+    }
+    // Task list
+    else if (trimmed.startsWith('- [ ]') || trimmed.startsWith('- [x]')) {
+      final checked = trimmed.startsWith('- [x]');
+      final text = trimmed.substring(6);
+      widgets.add(
+        pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text(checked ? '[x] ' : '[ ] ', style: normalStyle),
+            pw.Expanded(child: pw.Text(text, style: normalStyle)),
+          ],
+        ),
+      );
+      widgets.add(pw.SizedBox(height: 2));
     }
     // Regular paragraphs
     else {
-      // Handle inline formatting
       var processedLine = trimmed
         .replaceAll('**', '')
         .replaceAll('*', '')
         .replaceAll('`', '');
       
-      widgets.add(
-        pw.Text(
-          processedLine,
-          style: const pw.TextStyle(fontSize: 12),
-        ),
-      );
+      widgets.add(pw.Text(processedLine, style: normalStyle));
       widgets.add(pw.SizedBox(height: 4));
     }
   }
