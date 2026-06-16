@@ -764,7 +764,7 @@ class _EditorScreenState extends State<EditorScreen> {
       }
     } catch (e) {
       if (mounted) {
-        _showError('导出 PDF 失败: ');
+        _showError('导出 PDF 失败: $e');
       }
     }
   }
