@@ -1,5 +1,7 @@
 # QLaw Markdown 安装与启动指南
 
+> 版本 1.0.1 | 更新日期：2026-06-17
+
 ## 环境要求
 
 | 工具 | 最低版本 | 说明 |
@@ -122,6 +124,9 @@ flutter pub get
 | `markdown` | HTML 导出 |
 | `pdf` | PDF 生成 |
 | `printing` | PDF 分享/保存 |
+| `desktop_drop` | 文件拖拽打开 |
+| `webview_flutter` | Mermaid 图表渲染 |
+| `http` | 云同步 HTTP 请求 |
 
 ## 4. 验证项目
 
@@ -342,17 +347,28 @@ flutter pub get
 ## 项目结构
 
 ```text
-E:\markdown\markdown_editor\
+markdown_editor/
 ├── lib/
 │   ├── main.dart
 │   ├── editor/
 │   ├── file_service/
 │   ├── recent_store/
 │   ├── storage/
-│   └── export/
+│   ├── settings/
+│   ├── export/
+│   ├── cloud_sync/
+│   ├── spell_check/
+│   ├── custom_theme/
+│   ├── file_tree/
+│   ├── image_service/
+│   ├── table_editor/
+│   ├── task_list/
+│   └── templates/
 ├── test/
-│   └── widget_test.dart
+│   ├── widget_test.dart
+│   └── unit_test.dart
 ├── docs/
+├── fonts/
 ├── pubspec.yaml
 └── README.md
 ```

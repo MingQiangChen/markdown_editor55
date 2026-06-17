@@ -12,7 +12,6 @@ A Flutter Markdown editor for desktop and web.
 - Recent documents list, capped at 10 entries
 - Draft auto-save
 - Export to styled HTML and PDF (with Chinese font support)
-- External file change detection with conflict dialog
 - Responsive layout: split editor/preview on wide screens (>= 600px), paged layout on compact screens
 - Document word and character counts
 - Dark and light themes with custom theme picker
@@ -31,6 +30,8 @@ A Flutter Markdown editor for desktop and web.
 - Visual table editor with add/remove rows and columns
 - Task list with interactive checkboxes in preview
 - Find and replace with match highlighting
+- Code snippet templates (tables, formulas, diagrams, etc.)
+- Undo/redo support via built-in text editing
 
 ## Supported Platforms
 

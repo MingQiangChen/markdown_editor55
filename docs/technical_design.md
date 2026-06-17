@@ -1,5 +1,7 @@
 # QLaw Markdown Technical Design
 
+> 版本 1.0.1 | 更新日期：2026-06-17
+
 ## Overview
 
 QLaw Markdown is a Flutter desktop/web Markdown editor. It supports:
@@ -8,23 +10,25 @@ QLaw Markdown is a Flutter desktop/web Markdown editor. It supports:
 - Live preview via `flutter_markdown_plus`
 - GitHub-Flavored Markdown features such as tables, images, task lists, and nested lists
 - Syntax highlighting in fenced code blocks (both editor and preview)
-- Multi-document tab interface
+- Math formula support (inline $...$ and block $$...$$)
+- Mermaid diagram support with real-time preview
+- Multi-document tab interface with independent state per tab
 - File open/save for `.md` files
-- Drag-and-drop file opening
-- Auto-save drafts locally
+- Drag-and-drop file and image opening
+- Auto-save drafts and opened files
 - Recent documents list
 - Find and replace with case-sensitive toggle
-- Export to HTML and PDF
-- Save always opening a Save As dialog for explicit filename confirmation
+- Export to HTML (12 CSS templates) and PDF (with Chinese font support)
+- Code snippet templates (divider, TOC, table, task list, footnote, math, mermaid)
 - Keyboard shortcuts for formatting, file operations, and navigation
-- Responsive layout
-- Dark and light themes
-- Windows desktop and Web from one codebase
+- Responsive layout (split on wide screens, paged on compact)
+- Dark and light themes with custom theme picker
+- Windows, Linux, macOS desktop and Web from one codebase
 - View mode switching (Editor/Split/Preview)
 - Word wrap toggle
-- Math formula support (inline and block)
-- Mermaid diagram support
-- Export options dialog with CSS templates
+- Cloud sync (WebDAV) with local backup option
+- Spell check with suggestions
+- Document outline, file tree panel, table editor, task list editor
 
 ## Runtime Targets
 
@@ -32,17 +36,18 @@ Generated Flutter platforms:
 
 - Windows
 - Web
+- Linux
+- macOS
 
-The code is structured so other Flutter-supported targets can be added later with `flutter create --platforms=... .`, but storage, file service, and recent store behavior should be reviewed per platform.
+The code uses conditional exports (`dart.library.io` / `dart.library.html`) so storage, file service, and recent store behavior adapts per platform.
 
 ## Source Layout
 
-`	ext
+```
 lib/
   main.dart
   editor/
     editor_screen.dart
-    editor_toolbar.dart
     editor_shortcuts.dart
     find_replace_bar.dart
     highlighted_editor.dart
@@ -53,6 +58,14 @@ lib/
     document_stats.dart
     document_tab.dart
     document_tab_bar.dart
+    document_outline.dart
+    insert_image_dialog.dart
+    markdown_extensions/
+      math_builder.dart
+      math_inline_syntax.dart
+      math_block_syntax.dart
+      mermaid_builder.dart
+      mermaid_syntax.dart
   file_service/
     file_service.dart
     file_service_base.dart
@@ -71,15 +84,51 @@ lib/
     document_store_io.dart
     document_store_web.dart
     document_store_stub.dart
+  settings/
+    settings.dart
+    settings_base.dart
+    settings_io.dart
+    settings_web.dart
+    settings_stub.dart
+    settings_panel.dart
   export/
     export_service.dart
+    export_options_dialog.dart
+    css_templates.dart
+  cloud_sync/
+    cloud_sync.dart
+    cloud_sync_service.dart
+    webdav_client.dart
+    local_backup.dart
+    sync_config.dart
+    sync_settings_panel.dart
+    sync_status.dart
+  spell_check/
+    spell_checker.dart
+    spell_check_overlay.dart
+  custom_theme/
+    custom_theme.dart
+    theme_picker.dart
+  file_tree/
+    file_tree_node.dart
+    file_tree_panel.dart
+  image_service/
+    image_service.dart
+    image_service_base.dart
+  table_editor/
+    table_editor.dart
+  task_list/
+    task_list_editor.dart
+  templates/
+    document_templates.dart
 test/
   widget_test.dart
+  unit_test.dart
 docs/
+  project_manual_v2.md
   technical_design.md
-  project_manual.md
   setup_guide.md
-`
+```
 
 ## Conditional Export Pattern
 
@@ -139,18 +188,26 @@ main()
 
 | Widget | File | Purpose |
 | --- | --- | --- |
-| `EditorToolbar` | `editor_toolbar.dart` | Markdown formatting actions |
 | `EditorShortcuts` | `editor_shortcuts.dart` | Keyboard shortcut definitions |
 | `FindReplaceBar` | `find_replace_bar.dart` | Find and replace UI |
 | `HighlightedMarkdownEditor` | `highlighted_editor.dart` | Editor with syntax highlighting overlay |
 | `MarkdownTextEditor` | `markdown_text_editor.dart` | Wrapper that delegates to HighlightedMarkdownEditor |
-| `MarkdownPreview` | `markdown_preview.dart` | Markdown rendering |
+| `MarkdownPreview` | `markdown_preview.dart` | Markdown rendering with debounced updates |
 | `MarkdownSyntaxHighlighter` | `markdown_syntax_highlighter.dart` | Code block syntax highlighting in preview |
 | `MarkdownEditorHighlighter` | `markdown_editor_highlighter.dart` | Inline Markdown syntax highlighting in editor |
-| `StatusBar` | `document_stats.dart` | File name, stats, save status |
-| `DocumentStats` | `document_stats.dart` | Word and character counts |
+| `StatusBar` | `document_stats.dart` | File name, stats, save status, cursor position |
+| `DocumentOutline` | `document_outline.dart` | Heading-based document navigation |
 | `DocumentTab` | `document_tab.dart` | Tab data model |
 | `DocumentTabBar` | `document_tab_bar.dart` | Tab bar UI |
+| `DocumentTemplates` | `document_templates.dart` | 8 pre-built document templates |
+| `InsertImageDialog` | `insert_image_dialog.dart` | Image insertion from file or URL |
+| `TableEditor` | `table_editor.dart` | Visual table builder |
+| `TaskListEditor` | `task_list_editor.dart` | Interactive task list editor with reordering |
+| `FileTreePanel` | `file_tree_panel.dart` | Project file browser sidebar |
+| `SettingsPanel` | `settings_panel.dart` | Font, view mode, auto-save preferences |
+| `SyncSettingsPanel` | `sync_settings_panel.dart` | WebDAV / local backup configuration |
+| `SpellCheckOverlay` | `spell_check_overlay.dart` | Spell check errors with suggestion chips |
+| `ThemePicker` | `theme_picker.dart` | Custom theme selection dialog |
 
 ## Editing Model
 
@@ -177,11 +234,13 @@ Toolbar actions update the plain text directly. There is no rich text document m
 | `Ctrl+I` | Italic |
 | `Ctrl+` ` | Inline code |
 | `Ctrl+K` | Insert link |
-| `Ctrl+S` | Save As |
+| `Ctrl+S` | Save |
 | `Ctrl+O` | Open file |
 | `Ctrl+N` | New document |
 | `Ctrl+F` | Find and replace |
 | `Ctrl+Shift+P` | Toggle preview |
+| `Ctrl+Shift+V` | Cycle view mode |
+| `Alt+Z` | Toggle word wrap |
 | `Ctrl+Tab` | Next tab |
 | `Ctrl+Shift+Tab` | Previous tab |
 | `Ctrl+W` | Close tab |
@@ -269,24 +328,26 @@ Auto-save uses a 500 ms debounce to avoid writing on every keystroke.
 
 `lib/export/export_service.dart` provides:
 
-- `markdownToHtmlPage()` to convert Markdown into a styled HTML page
-- `markdownToPdf()` to convert Markdown to HTML to PDF bytes
-- `shareAsPdf()` to open platform PDF share/save handling
+- `markdownToHtmlPage()` — converts Markdown into a complete styled HTML page with optional KaTeX and Mermaid CDN includes
+- `markdownToPdf()` — converts Markdown to PDF using line-by-line parsing with support for headings, lists, code blocks, tables, blockquotes, task lists, and horizontal rules
+- `shareAsPdf()` — opens platform PDF share/save dialog
+- `_buildPdfTable()` — parses pipe-delimited table lines into `pw.Table` widgets with header styling
+- `_loadChineseFont()` — loads SimHei font from assets, falling back to system font, then Helvetica
+
+`lib/export/css_templates.dart` provides 12 CSS themes: Default, Dark, Minimal, GitHub, Solarized, Nord, Dracula, Academic, Technical, Newspaper, Presentation, Notion.
 
 ## Testing
 
-Current widget test coverage verifies:
+Test coverage includes 24 tests (5 widget + 19 unit):
 
-- App rendering with fake services
-- Initial document rendering
-- Toolbar and file operation buttons
-- Preview toggle behavior
+- Widget tests: app rendering, toolbar, word wrap toggle, save cancellation, error dialogs, missing recent files
+- Unit tests: DocumentStats word/character counting, AppSettings defaults/roundtrip/fromJson, RecentDocument roundtrip/null handling, CssTemplates validation, markdownToHtmlPage with KaTeX/Mermaid/custom template
 
 Run:
 
-`ash
+```bash
 flutter test
-`
+```
 
 ## Quality Gates
 
@@ -310,6 +371,9 @@ flutter test
 | `pdf` | PDF document generation |
 | `printing` | Platform PDF sharing/saving |
 | `desktop_drop` | Drag-and-drop file opening |
+| `webview_flutter` | WebView for Mermaid diagram rendering |
+| `http` | HTTP requests (WebDAV sync) |
+| `crypto` | Hashing for cloud sync verification |
 
 ## Completed Roadmap
 
