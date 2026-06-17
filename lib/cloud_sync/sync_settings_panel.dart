@@ -315,7 +315,7 @@ class _SyncSettingsPanelState extends State<SyncSettingsPanel> {
             if (lastSync != null) ...[
               const SizedBox(height: 8),
               Text(
-                '上次同步: ',
+                '上次同步: ${_formatTime(lastSync)}',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
@@ -358,10 +358,10 @@ class _SyncSettingsPanelState extends State<SyncSettingsPanel> {
   String _formatTime(DateTime time) {
     final now = DateTime.now();
     final diff = now.difference(time);
-    
+
     if (diff.inMinutes < 1) return '刚刚';
-    if (diff.inMinutes < 60) return '分钟前';
-    if (diff.inHours < 24) return '小时前';
-    return '/ :';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} 分钟前';
+    if (diff.inHours < 24) return '${diff.inHours} 小时前';
+    return '${time.year}/${time.month}/${time.day} ${time.hour}:${time.minute.toString().padLeft(2, '0')}';
   }
 }

@@ -103,61 +103,118 @@ Future<Uint8List> markdownToPdf(
   bool enableMermaid = false,
 }) async {
   final doc = pw.Document();
-  
+
   // 加载中文字体
   final chineseFont = await _loadChineseFont();
-  
+
   // 定义字体样式
   final normalStyle = pw.TextStyle(font: chineseFont, fontSize: 12);
   final boldStyle = pw.TextStyle(font: chineseFont, fontSize: 12, fontWeight: pw.FontWeight.bold);
+  final codeStyle = pw.TextStyle(font: pw.Font.courier(), fontSize: 10);
   final h1Style = pw.TextStyle(font: chineseFont, fontSize: 20, fontWeight: pw.FontWeight.bold);
   final h2Style = pw.TextStyle(font: chineseFont, fontSize: 18, fontWeight: pw.FontWeight.bold);
   final h3Style = pw.TextStyle(font: chineseFont, fontSize: 16, fontWeight: pw.FontWeight.bold);
   final italicStyle = pw.TextStyle(font: chineseFont, fontSize: 12, fontStyle: pw.FontStyle.italic, color: PdfColors.grey700);
   final titleStyle = pw.TextStyle(font: chineseFont, fontSize: 24, fontWeight: pw.FontWeight.bold);
-  
+
   // Parse markdown to extract content
   final lines = markdown.split('\n');
   final widgets = <pw.Widget>[];
-  
+
   // Add title if provided
   if (title != null && title.isNotEmpty) {
     widgets.add(pw.Text(title, style: titleStyle));
     widgets.add(pw.SizedBox(height: 16));
   }
-  
-  // Process markdown lines
-  for (final line in lines) {
+
+  var i = 0;
+  while (i < lines.length) {
+    final line = lines[i];
     final trimmed = line.trim();
-    
+
     if (trimmed.isEmpty) {
       widgets.add(pw.SizedBox(height: 8));
+      i++;
       continue;
     }
-    
+
     // Headers
     if (trimmed.startsWith('### ')) {
       widgets.add(pw.Text(trimmed.substring(4), style: h3Style));
       widgets.add(pw.SizedBox(height: 4));
+      i++;
     } else if (trimmed.startsWith('## ')) {
       widgets.add(pw.Text(trimmed.substring(3), style: h2Style));
       widgets.add(pw.SizedBox(height: 4));
+      i++;
     } else if (trimmed.startsWith('# ')) {
       widgets.add(pw.Text(trimmed.substring(2), style: h1Style));
       widgets.add(pw.SizedBox(height: 4));
+      i++;
+    }
+    // Code blocks
+    else if (trimmed.startsWith('```')) {
+      final codeLines = <String>[];
+      i++;
+      while (i < lines.length && !lines[i].trim().startsWith('```')) {
+        codeLines.add(lines[i]);
+        i++;
+      }
+      i++; // skip closing ```
+      if (codeLines.isNotEmpty) {
+        widgets.add(
+          pw.Container(
+            padding: const pw.EdgeInsets.all(8),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.grey200,
+              borderRadius: pw.BorderRadius.circular(4),
+            ),
+            width: double.infinity,
+            child: pw.Text(codeLines.join('\n'), style: codeStyle),
+          ),
+        );
+        widgets.add(pw.SizedBox(height: 8));
+      }
+    }
+    // Tables
+    else if (trimmed.contains('|')) {
+      final tableLines = <String>[];
+      while (i < lines.length && lines[i].trim().contains('|')) {
+        tableLines.add(lines[i].trim());
+        i++;
+      }
+      final tableWidgets = _buildPdfTable(tableLines, normalStyle, boldStyle);
+      widgets.addAll(tableWidgets);
+      widgets.add(pw.SizedBox(height: 8));
     }
     // List items
     else if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
-      widgets.add(
-        pw.Row(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Text('- ', style: normalStyle),
-            pw.Expanded(child: pw.Text(trimmed.substring(2), style: normalStyle)),
-          ],
-        ),
-      );
+      final text = trimmed.substring(2);
+      if (text.startsWith('[ ]') || text.startsWith('[x]')) {
+        final checked = text.startsWith('[x]');
+        final taskText = text.substring(4);
+        widgets.add(
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text(checked ? '[x] ' : '[ ] ', style: normalStyle),
+              pw.Expanded(child: pw.Text(taskText, style: normalStyle)),
+            ],
+          ),
+        );
+      } else {
+        widgets.add(
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text('- ', style: normalStyle),
+              pw.Expanded(child: pw.Text(text, style: normalStyle)),
+            ],
+          ),
+        );
+      }
       widgets.add(pw.SizedBox(height: 2));
+      i++;
     }
     // Numbered list
     else if (RegExp(r'^\d+\.\s').hasMatch(trimmed)) {
@@ -174,6 +231,7 @@ Future<Uint8List> markdownToPdf(
         );
         widgets.add(pw.SizedBox(height: 2));
       }
+      i++;
     }
     // Blockquotes
     else if (trimmed.startsWith('> ')) {
@@ -187,30 +245,13 @@ Future<Uint8List> markdownToPdf(
         ),
       );
       widgets.add(pw.SizedBox(height: 4));
-    }
-    // Code blocks
-    else if (trimmed.startsWith('```')) {
-      continue;
+      i++;
     }
     // Horizontal rule
     else if (trimmed == '---' || trimmed == '***' || trimmed == '___') {
       widgets.add(pw.Divider());
       widgets.add(pw.SizedBox(height: 8));
-    }
-    // Task list
-    else if (trimmed.startsWith('- [ ]') || trimmed.startsWith('- [x]')) {
-      final checked = trimmed.startsWith('- [x]');
-      final text = trimmed.substring(6);
-      widgets.add(
-        pw.Row(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Text(checked ? '[x] ' : '[ ] ', style: normalStyle),
-            pw.Expanded(child: pw.Text(text, style: normalStyle)),
-          ],
-        ),
-      );
-      widgets.add(pw.SizedBox(height: 2));
+      i++;
     }
     // Regular paragraphs
     else {
@@ -218,9 +259,10 @@ Future<Uint8List> markdownToPdf(
         .replaceAll('**', '')
         .replaceAll('*', '')
         .replaceAll('`', '');
-      
+
       widgets.add(pw.Text(processedLine, style: normalStyle));
       widgets.add(pw.SizedBox(height: 4));
+      i++;
     }
   }
   
@@ -239,6 +281,72 @@ Future<Uint8List> markdownToPdf(
   );
   
   return doc.save();
+}
+
+List<pw.Widget> _buildPdfTable(List<String> tableLines, pw.TextStyle normalStyle, pw.TextStyle boldStyle) {
+  final widgets = <pw.Widget>[];
+  if (tableLines.isEmpty) return widgets;
+
+  final rows = <List<String>>[];
+  for (final line in tableLines) {
+    final cells = line
+        .split('|')
+        .map((c) => c.trim())
+        .where((c) => c.isNotEmpty)
+        .toList();
+    if (cells.isNotEmpty) {
+      rows.add(cells);
+    }
+  }
+  if (rows.isEmpty) return widgets;
+
+  final colCount = rows.map((r) => r.length).reduce((a, b) => a > b ? a : b);
+
+  // Normalize all rows to the same column count
+  for (final row in rows) {
+    while (row.length < colCount) {
+      row.add('');
+    }
+  }
+
+  // Detect separator row (e.g. --- | ---)
+  final dataRows = rows.where((r) {
+    return !r.every((c) => RegExp(r'^:?-{3,}:?$').hasMatch(c));
+  }).toList();
+
+  if (dataRows.isEmpty) return widgets;
+
+  final headerRow = dataRows.first;
+  final bodyRows = dataRows.length > 1 ? dataRows.sublist(1) : <List<String>>[];
+
+  widgets.add(
+    pw.Table(
+      border: pw.TableBorder.all(color: PdfColors.grey400),
+      children: [
+        pw.TableRow(
+          decoration: pw.BoxDecoration(color: PdfColors.grey200),
+          children: headerRow.map((c) =>
+            pw.Padding(
+              padding: const pw.EdgeInsets.all(4),
+              child: pw.Text(c, style: boldStyle),
+            ),
+          ).toList(),
+        ),
+        ...bodyRows.map((row) =>
+          pw.TableRow(
+            children: row.map((c) =>
+              pw.Padding(
+                padding: const pw.EdgeInsets.all(4),
+                child: pw.Text(c, style: normalStyle),
+              ),
+            ).toList(),
+          ),
+        ),
+      ],
+    ),
+  );
+
+  return widgets;
 }
 
 /// Converts Markdown to PDF and opens the platform share/save dialog.

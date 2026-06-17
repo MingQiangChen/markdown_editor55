@@ -24,13 +24,13 @@ class WebDavClient {
 
   String _buildUrl(String path) {
     if (path.startsWith('/')) {
-      return '${_normalizedBaseUrl}`';
+      return '$_normalizedBaseUrl$path';
     }
-    return '${_normalizedBaseUrl}/$path';
+    return '$_normalizedBaseUrl/$path';
   }
 
   Map<String, String> get _headers {
-    final credentials = base64Encode(utf8.encode('${username}:$password'));
+    final credentials = base64Encode(utf8.encode('$username:$password'));
     return {
       'Authorization': 'Basic $credentials',
     };

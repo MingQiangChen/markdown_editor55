@@ -1,5 +1,4 @@
 ﻿import 'dart:async';
-import 'dart:io';
 import 'sync_config.dart';
 import 'sync_status.dart';
 import 'webdav_client.dart';
@@ -18,7 +17,9 @@ class CloudSyncService {
   void Function(SyncStatus)? onStatusChanged;
   void Function(SyncResult)? onSyncCompleted;
 
-  CloudSyncService(this._config);
+  CloudSyncService(this._config) {
+    _initClients();
+  }
 
   SyncStatus get status => _status;
   SyncConfig get config => _config;
@@ -81,7 +82,7 @@ class CloudSyncService {
       if (_config.provider == SyncProvider.webdav && _webdavClient != null) {
         // 确保远程目录存在
         await _webdavClient!.createDirectory(_config.remotePath!);
-        final remotePath = '/';
+        final remotePath = '${_config.remotePath}/$fileName';
         success = await _webdavClient!.uploadFile(remotePath, content);
       } else if (_config.provider == SyncProvider.localBackup && _localBackup != null) {
         success = await _localBackup!.backupFile(fileName, content);
@@ -97,7 +98,7 @@ class CloudSyncService {
       
       return result;
     } catch (e) {
-      final result = SyncResult.error('同步出错: ');
+      final result = SyncResult.error('同步出错: $e');
       _history.add(result);
       _setStatus(SyncStatus.error);
       onSyncCompleted?.call(result);
@@ -111,7 +112,7 @@ class CloudSyncService {
 
     try {
       if (_config.provider == SyncProvider.webdav && _webdavClient != null) {
-        final remotePath = '/';
+        final remotePath = '${_config.remotePath}/$fileName';
         return await _webdavClient!.downloadFile(remotePath);
       } else if (_config.provider == SyncProvider.localBackup && _localBackup != null) {
         return await _localBackup!.restoreFile(fileName);
@@ -146,7 +147,7 @@ class CloudSyncService {
     _autoSyncTimer = Timer.periodic(
       Duration(minutes: _config.autoSyncIntervalMinutes),
       (_) {
-        // 自动同步逻辑由外部触发
+        onSyncCompleted?.call(SyncResult.success(message: '自动同步触发'));
       },
     );
   }

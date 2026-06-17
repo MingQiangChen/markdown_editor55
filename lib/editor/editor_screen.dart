@@ -1,6 +1,5 @@
 ﻿import 'dart:async';
 import 'package:desktop_drop/desktop_drop.dart';
-import 'package:cross_file/cross_file.dart';
 
 import 'package:flutter/material.dart';
 
@@ -30,7 +29,6 @@ import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import '../templates/document_templates.dart';
 import '../cloud_sync/cloud_sync.dart';
-import '../spell_check/spell_checker.dart';
 import '../spell_check/spell_check_overlay.dart';
 
 class EditorScreen extends StatefulWidget {
@@ -178,8 +176,8 @@ class _EditorScreenState extends State<EditorScreen> {
       '脚注': '\n\n这是一段带脚注的文本[^1]。\n\n[^1]: 这是脚注内容。\n\n',
       'HTML 注释': '\n\n<!-- 注释内容 -->\n\n',
       '定义列表': '\n\n术语 1\n:   定义 1\n\n术语 2\n:   定义 2\n\n',
-      '数学公式块': '\n\n\\\math\nE = mc^2\n\\\\n\n',
-      'Mermaid 流程图': '\n\n\\\mermaid\ngraph TD\n    A[开始] --> B[结束]\n\\\\n\n',
+      '数学公式块': '\n\n```math\nE = mc^2\n```\n\n',
+      'Mermaid 流程图': '\n\n```mermaid\ngraph TD\n    A[开始] --> B[结束]\n```\n\n',
     };
 
     showModalBottomSheet<void>(
@@ -211,7 +209,7 @@ class _EditorScreenState extends State<EditorScreen> {
       context: context,
       builder: (context) => TableEditor(
         onTableGenerated: (tableMarkdown) {
-          _insertBlock('\n\n' + tableMarkdown);
+          _insertBlock('\n\n$tableMarkdown');
         },
       ),
     );
@@ -222,7 +220,7 @@ class _EditorScreenState extends State<EditorScreen> {
       context: context,
       builder: (context) => TaskListEditor(
         onTasksGenerated: (tasksMarkdown) {
-          _insertBlock('\n\n' + tasksMarkdown);
+          _insertBlock('\n\n$tasksMarkdown');
         },
       ),
     );
@@ -262,7 +260,7 @@ class _EditorScreenState extends State<EditorScreen> {
       }
     } catch (e) {
       if (mounted) {
-        _showError('打开文件失败: ');
+        _showError('打开文件失败: $e');
       }
     }
   }
@@ -296,7 +294,7 @@ class _EditorScreenState extends State<EditorScreen> {
         if (mounted) _showError('保存图片失败');
         return;
       }
-      _insertBlock('\n\n![]()\n\n');
+      _insertBlock('\n\n![$ext]($relativePath)\n\n');
     } catch (e) {
       if (mounted) _showError('选择图片失败: $e');
     }
@@ -304,7 +302,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
   void _insertImageFromUrl(String url, String altText) {
     final alt = altText.isNotEmpty ? altText : '';
-    _insertBlock('\n\n![]()\n\n');
+    _insertBlock('\n\n![$alt]($url)\n\n');
   }
 
   bool _isImageFile(String path) {
@@ -318,7 +316,7 @@ class _EditorScreenState extends State<EditorScreen> {
         lower.endsWith('.svg');
   }
 
-  Future<void> _handleDroppedImage(XFile droppedFile) async {
+  Future<void> _handleDroppedImage(dynamic droppedFile) async {
     try {
       final file = File(droppedFile.path);
       final bytes = await file.readAsBytes();
@@ -333,7 +331,7 @@ class _EditorScreenState extends State<EditorScreen> {
         if (mounted) _showError('保存图片失败');
         return;
       }
-      _insertBlock('\n\n![]()\n\n');
+      _insertBlock('\n\n![$ext]($relativePath)\n\n');
     } catch (e) {
       if (mounted) _showError('插入图片失败: $e');
     }
@@ -362,7 +360,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
   String _nextTabId() {
     _tabCounter++;
-    return 'tab_';
+    return 'tab_$_tabCounter';
   }
 
   Future<void> _loadRecentDocs() async {
@@ -528,7 +526,7 @@ class _EditorScreenState extends State<EditorScreen> {
       }
     } catch (e) {
       if (mounted) {
-        _showError('打开文件失败: ');
+        _showError('打开文件失败: $e');
       }
     }
   }
@@ -553,6 +551,7 @@ class _EditorScreenState extends State<EditorScreen> {
       _saveStatus = '已保存';
     });
     await _addToRecent(result.path, result.name);
+    _startAutoSave();
   }
 
   Future<void> _addToRecent(String path, String name) async {
@@ -643,7 +642,7 @@ class _EditorScreenState extends State<EditorScreen> {
       }
     } catch (e) {
       if (mounted) {
-        _showError('保存失败: ');
+        _showError('保存失败: $e');
       }
     }
   }
@@ -681,16 +680,6 @@ class _EditorScreenState extends State<EditorScreen> {
     });
   }
 
-  void _newDocument() {
-    final tab = DocumentTab.empty(id: _nextTabId());
-    _attachListener(tab);
-    setState(() {
-      _tabs.add(tab);
-      _activeTabId = tab.id;
-      _saveStatus = '已保存';
-    });
-  }
-
   Future<void> _openRecent(RecentDocument doc) async {
     try {
       final result = await widget.fileService.openFilePath(doc.path);
@@ -699,7 +688,7 @@ class _EditorScreenState extends State<EditorScreen> {
       }
     } catch (e) {
       if (mounted) {
-        _showError('打开文件失败: ');
+        _showError('打开文件失败: $e');
       }
     }
   }
@@ -742,7 +731,7 @@ class _EditorScreenState extends State<EditorScreen> {
       }
     } catch (e) {
       if (mounted) {
-        _showError('导出 HTML 失败: ');
+        _showError('导出 HTML 失败: $e');
       }
     }
   }
@@ -808,21 +797,6 @@ class _EditorScreenState extends State<EditorScreen> {
     _activeTab.focusNode.requestFocus();
   }
 
-  void _prefixCurrentLine(String prefix) {
-    final controller = _activeTab.controller;
-    final text = controller.text;
-    final cursorPos = controller.selection.baseOffset;
-
-    if (cursorPos < 0) return;
-    final searchFrom = cursorPos > 0 ? cursorPos - 1 : 0;
-    final lineStart = text.lastIndexOf('\n', searchFrom) + 1;
-    controller.text = text.replaceRange(lineStart, lineStart, prefix);
-    controller.selection = TextSelection.collapsed(
-      offset: cursorPos + prefix.length,
-    );
-    _activeTab.focusNode.requestFocus();
-  }
-
   void _insertBlock(String block) {
     final controller = _activeTab.controller;
     final selection = controller.selection;
@@ -871,7 +845,7 @@ class _EditorScreenState extends State<EditorScreen> {
                     }
                   } catch (e) {
                     if (mounted) {
-                      _showError('打开文件失败: ');
+                      _showError('打开文件失败: $e');
                     }
                   }
                 }
@@ -1129,6 +1103,13 @@ class _EditorScreenState extends State<EditorScreen> {
               child: IconButton(
                 icon: const Icon(Icons.checklist),
                 onPressed: _showTaskListEditor,
+              ),
+            ),
+            Tooltip(
+              message: '代码片段',
+              child: IconButton(
+                icon: const Icon(Icons.code),
+                onPressed: _showSnippetMenu,
               ),
             ),
             Tooltip(

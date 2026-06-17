@@ -14,11 +14,13 @@ class LocalBackup {
     }
   }
 
+  String _filePath(String fileName) => '$backupPath${Platform.pathSeparator}$fileName';
+
   /// 备份文件
   Future<bool> backupFile(String fileName, String content) async {
     try {
       await ensureBackupDir();
-      final file = File('\\');
+      final file = File(_filePath(fileName));
       await file.writeAsString(content, flush: true);
       return true;
     } catch (e) {
@@ -29,7 +31,7 @@ class LocalBackup {
   /// 恢复文件
   Future<String?> restoreFile(String fileName) async {
     try {
-      final file = File('\\');
+      final file = File(_filePath(fileName));
       if (await file.exists()) {
         return await file.readAsString();
       }
@@ -59,7 +61,7 @@ class LocalBackup {
   /// 删除备份
   Future<bool> deleteBackup(String fileName) async {
     try {
-      final file = File('\\');
+      final file = File(_filePath(fileName));
       if (await file.exists()) {
         await file.delete();
         return true;

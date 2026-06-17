@@ -71,7 +71,9 @@ class _SpellCheckOverlayState extends State<SpellCheckOverlay> {
     }
 
     return Container(
+      constraints: const BoxConstraints(maxHeight: 200),
       padding: const EdgeInsets.all(8),
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -81,7 +83,7 @@ class _SpellCheckOverlayState extends State<SpellCheckOverlay> {
             style: Theme.of(context).textTheme.titleSmall,
           ),
           const SizedBox(height: 8),
-          Flexible(
+          Expanded(
             child: ListView.builder(
               shrinkWrap: true,
               itemCount: _misspelledWords.length > 10 ? 10 : _misspelledWords.length,

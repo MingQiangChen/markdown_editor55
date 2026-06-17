@@ -77,7 +77,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('字体大小: '),
+        Text('字体大小: ${_settings.fontSize.toInt()}'),
         Slider(
           value: _settings.fontSize,
           min: 10,
@@ -178,7 +178,7 @@ class _SettingsPanelState extends State<SettingsPanel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('自动保存间隔:  ms'),
+        Text('自动保存间隔: ${_settings.autoSaveIntervalMs} ms'),
         Slider(
           value: _settings.autoSaveIntervalMs.toDouble(),
           min: 200,

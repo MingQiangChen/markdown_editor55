@@ -133,11 +133,11 @@ class _StatusBarState extends State<StatusBar> {
                 Text('\u00b7'),
                 const SizedBox(width: 12),
               ],
-              Text(' \u884c,  \u5217'),
+              Text('$_line \u884c, $_column \u5217'),
               const SizedBox(width: 16),
-              Text(' \u8bcd'),
+              Text('${widget.stats.words} \u8bcd'),
               const SizedBox(width: 16),
-              Text(' \u5b57\u7b26'),
+              Text('${widget.stats.characters} \u5b57\u7b26'),
               const SizedBox(width: 16),
               Expanded(
                 child: Row(

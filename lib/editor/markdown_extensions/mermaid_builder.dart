@@ -111,8 +111,8 @@ class _MermaidWebViewState extends State<_MermaidWebView> {
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
   <style>
     body {
-      background-color: ;
-      color: ;
+      background-color: $backgroundColor;
+      color: $textColor;
       margin: 0;
       padding: 16px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -131,13 +131,13 @@ class _MermaidWebViewState extends State<_MermaidWebView> {
   </style>
 </head>
 <body>
-  <div class="mermaid" id="diagram"></div>
+  <div class="mermaid">$escapedDiagram</div>
   <div id="error" class="error" style="display: none;"></div>
   
   <script>
     mermaid.initialize({ 
       startOnLoad: true,
-      theme: '',
+      theme: '${isDark ? 'dark' : 'default'}',
       securityLevel: 'loose'
     });
     
