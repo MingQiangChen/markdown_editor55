@@ -1,6 +1,6 @@
-# QLaw Markdown 安装与启动指南
+﻿# QLaw Markdown 安装与启动指南
 
-> 版本 1.0.1 | 更新日期：2026-06-17
+> 版本 1.1.0 | 更新日期：2026-06-23
 
 ## 环境要求
 
@@ -12,6 +12,8 @@
 | Windows | 10/11 | 桌面端运行 |
 | Linux | Ubuntu 20.04+ / Fedora 36+ | 桌面端运行 |
 | macOS | 10.14+ | 桌面端运行 |
+| Android | 5.0+ (API 21+) | 移动端运行 |
+| iOS | 12.0+ | 移动端运行（需 macOS + Xcode） |
 | 浏览器 | Chrome / Edge | Web 端运行 |
 
 ## 1. 安装 Flutter
@@ -34,7 +36,6 @@ sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-
 ```
 
 然后安装 Flutter：
-
 ```bash
 # 方式一：snap（推荐）
 sudo snap install flutter --classic
@@ -45,7 +46,6 @@ export PATH="$PATH:$HOME/flutter/bin"
 ```
 
 ### Linux（Fedora/RHEL）
-
 ```bash
 sudo dnf install clang cmake ninja-build gtk3-devel pkgconf-pkg-config libstdc++-devel
 sudo snap install flutter --classic
@@ -55,22 +55,18 @@ sudo snap install flutter --classic
 ### macOS
 
 先安装 Xcode Command Line Tools：
-
 ```bash
 xcode-select --install
 ```
 
 首次安装后需要同意 Xcode 许可协议并完成初始化：
-
 ```bash
 sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
 sudo xcodebuild -runFirstLaunch
 ```
 
 如果没有安装完整的 Xcode，可以跳过上面两行，只保留 `xcode-select --install`。
-
 然后安装 Flutter：
-
 ```bash
 # 方式一：Homebrew（推荐）
 brew install --cask flutter
@@ -88,74 +84,105 @@ https://docs.flutter.dev/get-started/install/macos
 
 ### 验证安装
 
-安装后运行：
-
 ```bash
 flutter doctor
 ```
 
-本项目需要 Windows/Linux/macOS desktop 或 Chrome/Web 环境。Android toolchain 不是必需项。
+确保以下项目通过：
+- Flutter SDK
+- Android toolchain（如需 Android 支持）
+- Xcode（如需 iOS 支持，仅 macOS）
+- Chrome（如需 Web 支持）
+- 连接的设备（如需真机调试）
 
-## 2. 获取项目代码
+## 2. Android 开发环境配置
+
+### 安装 Android Studio
+
+下载地址：https://developer.android.com/studio
+
+### 配置 Android SDK
+
+1. 打开 Android Studio
+2. 进入 Settings > Languages & Frameworks > Android SDK
+3. 安装以下组件：
+   - Android SDK Platform（API 34 或更高）
+   - Android SDK Build-Tools
+   - Android Emulator
+
+### 配置环境变量
+
+**Windows：**
+```cmd
+setx ANDROID_HOME "%LOCALAPPDATA%\Android\Sdk"
+setx PATH "%PATH%;%ANDROID_HOME%\platform-tools;%ANDROID_HOME%\tools\bin"
+```
+
+**Linux/macOS：**
+```bash
+export ANDROID_HOME="$HOME/Android/Sdk"
+export PATH="$PATH:$ANDROID_HOME/platform-tools:$ANDROID_HOME/tools/bin"
+```
+
+### 接受许可协议
+
+```bash
+flutter doctor --android-licenses
+```
+
+### 创建模拟器
+
+1. 打开 Android Studio
+2. 进入 Tools > Device Manager
+3. 点击 Create Device
+4. 选择设备类型和系统版本
+5. 完成创建后启动模拟器
+
+## 3. iOS 开发环境配置（仅 macOS）
+
+### 安装 Xcode
+
+从 App Store 安装最新版 Xcode。
+
+### 配置 Xcode
+
+```bash
+sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+sudo xcodebuild -runFirstLaunch
+```
+
+### 安装 CocoaPods
+
+```bash
+sudo gem install cocoapods
+# 或使用 Homebrew
+brew install cocoapods
+```
+
+### 创建模拟器
+
+1. 打开 Xcode
+2. 进入 Window > Devices and Simulators
+3. 选择 Simulators 标签
+4. 点击 + 创建新模拟器
+
+## 4. 获取项目
 
 ```bash
 git clone https://github.com/MingQiangChen/markdown_editor55.git
 cd markdown_editor55
-```
-
-如果已经在本机项目目录中：
-
-```bash
-cd E:\markdown\markdown_editor
-```
-
-## 3. 安装依赖
-
-```bash
 flutter pub get
-```
-
-主要依赖：
-
-| 包 | 用途 |
-| --- | --- |
-| `file_picker` | 桌面端原生文件对话框 |
-| `flutter_markdown_plus` | Markdown 实时预览 |
-| `markdown` | HTML 导出 |
-| `pdf` | PDF 生成 |
-| `printing` | PDF 分享/保存 |
-| `desktop_drop` | 文件拖拽打开 |
-| `webview_flutter` | Mermaid 图表渲染 |
-| `http` | 云同步 HTTP 请求 |
-
-## 4. 验证项目
-
-```bash
-dart format lib test
-flutter analyze
-flutter test
-```
-
-预期结果：
-
-```text
-No issues found!
-All tests passed!
 ```
 
 ## 5. 启动应用
 
-### Web 浏览器
+### Web 模式（推荐快速体验）
 
 ```bash
 flutter run -d web-server --web-hostname=127.0.0.1 --web-port=5173
 ```
 
-打开：
-
-```text
-http://127.0.0.1:5173
-```
+浏览器打开 `http://127.0.0.1:5173`
 
 ### Windows 桌面
 
@@ -175,200 +202,133 @@ flutter run -d linux
 flutter run -d macos
 ```
 
-桌面模式会使用原生文件选择和保存对话框。
-
-### Chrome 直接运行
+### Android
 
 ```bash
-flutter run -d chrome
+# 使用模拟器
+flutter run -d android
+
+# 使用真机（需开启 USB 调试）
+flutter devices  # 查看已连接设备
+flutter run -d <device-id>
+```
+
+### iOS（仅 macOS）
+
+```bash
+# 使用模拟器
+flutter run -d ios
+
+# 使用真机
+flutter devices
+flutter run -d <device-id>
 ```
 
 ## 6. 构建发布版本
 
-Web：
-
-```bash
-flutter build web
-```
-
-输出目录：
-
-```text
-build\web
-```
-
-Windows：
-
-```bash
-flutter build windows
-```
-
-输出目录：
-
-```text
-build\windows\x64\runner\Release
-```
-
-Linux：
-
-```bash
-flutter build linux --release
-```
-
-输出目录：
-
-```text
-build/linux/x64/release/bundle
-```
-
-macOS：
-
-```bash
-flutter build macos --release
-```
-
-输出目录：
-
-```text
-build/macos/Build/Products/Release
-```
-
-构建完成后可直接将 `.app` 拷贝到 `/Applications` 使用：
-
-```bash
-cp -r build/macos/Build/Products/Release/markdown_editor.app /Applications/
-```
-
-## 数据存储位置
-
-| 数据 | Windows | Linux | macOS | Web |
-| --- | --- | --- | --- | --- |
-| 草稿 | `%APPDATA%\QLawMarkdown\draft.md` | `~/.config/QLawMarkdown/draft.md` | `~/Library/Application Support/QLawMarkdown/draft.md` | `localStorage` |
-| 最近文件 | `%APPDATA%\QLawMarkdown\recent.json` | `~/.config/QLawMarkdown/recent.json` | `~/Library/Application Support/QLawMarkdown/recent.json` | `localStorage` |
-
-## 常见问题
-
-**Q: `flutter doctor` 提示 Android toolchain 未安装怎么办？**
-
-A: 本项目只需要 Windows/Linux/macOS desktop 或 Chrome/Web，Android toolchain 可以暂时忽略。
-
-**Q: Linux 下 `flutter doctor` 提示缺少 Linux toolchain 怎么办？**
-
-A: 安装 GTK 3 开发库和构建工具：
-
-```bash
-# Ubuntu/Debian
-sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev
-
-# Fedora
-sudo dnf install clang cmake ninja-build gtk3-devel
-```
-
-安装后重新运行 `flutter doctor` 确认 Linux toolchain 显示 ✓。
-
-**Q: Linux 构建时报错找不到 GTK 头文件？**
-
-A: 确保已安装 `libgtk-3-dev`（Debian/Ubuntu）或 `gtk3-devel`（Fedora）。可以用以下命令验证：
-
-```bash
-pkg-config --modversion gtk+-3.0
-```
-
-应输出版本号（如 3.24.x）。
-
-**Q: macOS 下 `flutter doctor` 提示 Xcode 未安装？**
-
-A: 安装 Xcode Command Line Tools 并完成初始化：
-
-```bash
-xcode-select --install
-# 如果安装了完整 Xcode，还需执行：
-sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
-sudo xcodebuild -runFirstLaunch
-```
-
-完成后重新运行 `flutter doctor`，确认 macOS toolchain 显示 ✓。
-
-**Q: macOS 打开应用时提示"无法验证开发者"或"已损坏"？**
-
-A: 移除应用的隔离属性：
-
-```bash
-xattr -cr build/macos/Build/Products/Release/markdown_editor.app
-```
-
-或者在"系统设置 → 隐私与安全性"中点击"仍要打开"。
-
-**Q: macOS 构建时报错 CocoaPods 未安装？**
-
-A: 安装 CocoaPods：
-
-```bash
-sudo gem install cocoapods
-# 或使用 Homebrew：
-brew install cocoapods
-```
-
-然后在项目目录执行：
-
-```bash
-cd macos && pod install && cd ..
-flutter build macos --release
-```
-
-**Q: 端口 5173 被占用怎么办？**
-
-A: 换一个端口，例如：
-
-```bash
-flutter run -d web-server --web-hostname=127.0.0.1 --web-port=5174
-```
-
-**Q: Web 模式保存时为什么不是系统文件对话框？**
-
-A: Web 端受浏览器限制，保存会走浏览器下载流程。需要原生文件对话框时请使用桌面模式。
-
-**Q: `flutter pub get` 下载超时怎么办？**
-
-A: 可以配置镜像后重试：
-
 ```bash
 # Windows
-set PUB_HOSTED_URL=https://pub.flutter-io.cn
-set FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn
+flutter build windows --release
+# 产物在 build/windows/x64/runner/Release/
 
-# Linux / macOS
-export PUB_HOSTED_URL=https://pub.flutter-io.cn
-export FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn
+# Linux
+flutter build linux --release
 
+# macOS
+flutter build macos --release
+
+# Web
+flutter build web --release
+
+# Android APK
+flutter build apk --release
+# 产物在 build/app/outputs/flutter-apk/app-release.apk
+
+# Android App Bundle（Google Play 推荐）
+flutter build appbundle --release
+
+# iOS（需要 macOS 和 Xcode）
+flutter build ios --release
+# 然后在 Xcode 中打开 ios/Runner.xcworkspace 进行归档和发布
+```
+
+## 7. 移动端适配说明
+
+v1.1.0 新增 Android 和 iOS 移动端支持，采用响应式布局：
+
+### 界面特点
+
+- **底部工具栏**：格式化按钮固定在屏幕底部，方便单手操作
+- **侧边抽屉菜单**：左滑或点击汉堡菜单打开，包含文件操作、设置等功能
+- **底部状态栏**：显示字数、字符数和保存状态
+- **视图切换**：支持编辑、分屏、预览三种模式
+- **底部弹窗面板**：文件树和文档大纲以底部弹窗形式展示
+
+### 断点设计
+
+| 屏幕宽度 | 布局类型 | 特点 |
+|----------|----------|------|
+| < 600px | 移动端 | 底部工具栏 + 抽屉菜单 |
+| 600-1024px | 平板 | 过渡布局 |
+| ≥ 1024px | 桌面端 | 侧边面板 + 顶部工具栏 |
+
+### 操作提示
+
+- 点击左上角汉堡菜单打开功能列表
+- 左滑屏幕或点击菜单按钮打开抽屉
+- 底部工具栏可横向滚动查看所有格式化选项
+- 文件树和文档大纲从底部弹出，可上下拖拽调整大小
+
+## 8. 常见问题
+
+### Android 构建失败
+
+```bash
+# 清理缓存
+flutter clean
 flutter pub get
+
+# 检查 Android 配置
+flutter doctor -v
 ```
 
-## 项目结构
+### iOS 构建失败（macOS）
 
-```text
-markdown_editor/
-├── lib/
-│   ├── main.dart
-│   ├── editor/
-│   ├── file_service/
-│   ├── recent_store/
-│   ├── storage/
-│   ├── settings/
-│   ├── export/
-│   ├── cloud_sync/
-│   ├── spell_check/
-│   ├── custom_theme/
-│   ├── file_tree/
-│   ├── image_service/
-│   ├── table_editor/
-│   ├── task_list/
-│   └── templates/
-├── test/
-│   ├── widget_test.dart
-│   └── unit_test.dart
-├── docs/
-├── fonts/
-├── pubspec.yaml
-└── README.md
+```bash
+# 清理缓存
+flutter clean
+flutter pub get
+cd ios
+pod install
+cd ..
+
+# 检查 iOS 配置
+flutter doctor -v
 ```
+
+### 模拟器无法启动
+
+- Android：确保已安装 Android SDK 和系统镜像
+- iOS：确保已安装 Xcode 和模拟器运行时
+
+### 真机调试无法连接
+
+- Android：开启开发者选项和 USB 调试
+- iOS：信任此电脑，并确保已安装开发者证书
+
+## 9. 验证与测试
+
+```bash
+# 代码格式化
+dart format lib test
+
+# 静态分析
+flutter analyze
+
+# 运行测试
+flutter test
+```
+
+---
+
+如有问题，请访问项目主页：https://github.com/MingQiangChen/markdown_editor55

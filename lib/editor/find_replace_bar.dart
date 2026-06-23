@@ -1,6 +1,10 @@
+﻿import 'dart:async';
 import 'package:flutter/material.dart';
 
 /// A find and replace bar that overlays the editor.
+///
+/// For large documents, search is debounced and results are capped to avoid
+/// blocking the UI during rapid typing.
 class FindReplaceBar extends StatefulWidget {
   const FindReplaceBar({
     super.key,
@@ -23,6 +27,15 @@ class _FindReplaceBarState extends State<FindReplaceBar> {
   bool _caseSensitive = false;
   List<int> _matchIndices = [];
   int _currentMatchIndex = -1;
+  Timer? _searchTimer;
+
+  /// Maximum number of match positions to track for large documents.
+  static const int _maxMatchResults = 1000;
+  /// Debounce delay for search input.
+  static const Duration _searchDebounce = Duration(milliseconds: 200);
+  /// Text length above which we use longer debounce.
+  static const int _largeTextThreshold = 100000;
+  static const Duration _largeTextDebounce = Duration(milliseconds: 500);
 
   @override
   void initState() {
@@ -34,6 +47,7 @@ class _FindReplaceBarState extends State<FindReplaceBar> {
 
   @override
   void dispose() {
+    _searchTimer?.cancel();
     _findController.dispose();
     _replaceController.dispose();
     _findFocusNode.dispose();
@@ -41,6 +55,26 @@ class _FindReplaceBarState extends State<FindReplaceBar> {
   }
 
   void _performFind() {
+    _searchTimer?.cancel();
+
+    final query = _findController.text;
+    if (query.isEmpty) {
+      setState(() {
+        _matchIndices = [];
+        _currentMatchIndex = -1;
+      });
+      return;
+    }
+
+    final isLargeText = widget.controller.text.length > _largeTextThreshold;
+    final delay = isLargeText ? _largeTextDebounce : _searchDebounce;
+
+    _searchTimer = Timer(delay, () {
+      _executeSearch();
+    });
+  }
+
+  void _executeSearch() {
     final query = _findController.text;
     if (query.isEmpty) {
       setState(() {
@@ -56,10 +90,11 @@ class _FindReplaceBarState extends State<FindReplaceBar> {
     final searchQuery = _caseSensitive ? query : query.toLowerCase();
 
     var startIndex = 0;
-    while (true) {
+    while (startIndex < searchText.length) {
       final index = searchText.indexOf(searchQuery, startIndex);
       if (index == -1) break;
       indices.add(index);
+      if (indices.length >= _maxMatchResults) break;
       startIndex = index + 1;
     }
 
@@ -75,9 +110,6 @@ class _FindReplaceBarState extends State<FindReplaceBar> {
     if (_currentMatchIndex < 0 || _matchIndices.isEmpty) return;
 
     final matchPos = _matchIndices[_currentMatchIndex];
-
-    // We can't directly scroll the HighlightedMarkdownEditor from here,
-    // so we'll just select the match in the text field.
     final query = _findController.text;
     widget.controller.selection = TextSelection(
       baseOffset: matchPos,
@@ -116,12 +148,9 @@ class _FindReplaceBarState extends State<FindReplaceBar> {
         replacement +
         text.substring(matchPos + query.length);
 
-    // Re-search and keep the current position (or move to next if at end)
     final previousIndex = _currentMatchIndex;
-    _performFind();
+    _executeSearch();
 
-    // Adjust index: if we replaced and there are still matches,
-    // stay at the same position (which is now the next match)
     if (_matchIndices.isNotEmpty) {
       setState(() {
         _currentMatchIndex =
@@ -143,13 +172,17 @@ class _FindReplaceBarState extends State<FindReplaceBar> {
       widget.controller.text = text.replaceAll(regex, _replaceController.text);
     }
 
-    _performFind();
+    _executeSearch();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+
+    final matchLabel = _matchIndices.length >= _maxMatchResults
+        ? '$_maxMatchResults+'
+        : '$_matchIndices.length';
 
     return Material(
       elevation: 2,
@@ -159,7 +192,6 @@ class _FindReplaceBarState extends State<FindReplaceBar> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Find row
             Row(
               children: [
                 Expanded(
@@ -175,7 +207,7 @@ class _FindReplaceBarState extends State<FindReplaceBar> {
                                   _findController.text.isNotEmpty
                               ? '无结果'
                               : _matchIndices.isNotEmpty
-                              ? '/'
+                              ? '$matchLabel 个匹配'
                               : null,
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 10,
@@ -200,7 +232,7 @@ class _FindReplaceBarState extends State<FindReplaceBar> {
                     ),
                     onPressed: () {
                       setState(() => _caseSensitive = !_caseSensitive);
-                      _performFind();
+                      _executeSearch();
                     },
                   ),
                 ),
@@ -239,7 +271,6 @@ class _FindReplaceBarState extends State<FindReplaceBar> {
                 ),
               ],
             ),
-            // Replace row
             if (_showReplace)
               Padding(
                 padding: const EdgeInsets.only(top: 6),

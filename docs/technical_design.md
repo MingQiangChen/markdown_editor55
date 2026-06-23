@@ -1,10 +1,10 @@
 # QLaw Markdown Technical Design
 
-> 版本 1.0.1 | 更新日期：2026-06-17
+> 版本 1.1.0 | 更新日期：2026-06-23
 
 ## Overview
 
-QLaw Markdown is a Flutter desktop/web Markdown editor. It supports:
+QLaw Markdown is a Flutter desktop/web/mobile Markdown editor. It supports:
 
 - Markdown editing with inline syntax highlighting (overlay technique)
 - Live preview via `flutter_markdown_plus`
@@ -393,3 +393,58 @@ flutter test
 14. Add math formula support (inline and block)
 15. Add Mermaid diagram support
 16. Add export options dialog with CSS templates
+
+
+## Mobile Architecture (v1.1.0)
+
+### Responsive Layout System
+
+The app uses a responsive layout system based on screen width:
+
+`dart
+class ResponsiveLayout {
+  static const double mobile = 600;
+  static const double tablet = 1024;
+  
+  bool get isMobile => width < mobile;
+  bool get isTablet => width >= mobile && width < tablet;
+  bool get isDesktop => width >= tablet;
+}
+`
+
+### Mobile Layout Components
+
+**MobileEditorLayout** (lib/editor/mobile_editor_layout.dart):
+- AppBar with menu button and view mode toggle
+- Bottom toolbar with formatting buttons (EditorToolbar)
+- Bottom status bar (word count, character count, save status)
+- Drawer menu with file operations and settings
+- Modal bottom sheets for file tree and document outline
+
+**EditorToolbar** (updated):
+- Responsive icon size: 24px (mobile) / 20px (desktop)
+- Responsive button size: 48px (mobile) / 40px (desktop)
+- Horizontal scrolling for overflow buttons
+
+### Platform-Specific Adaptations
+
+**Drag & Drop**:
+- Desktop: Uses desktop_drop package via conditional import
+- Mobile: No-op stub (drag & drop not applicable)
+
+**File Operations**:
+- Uses ile_picker package for cross-platform file selection
+- Platform-specific paths handled by conditional exports
+
+**Storage**:
+- Android: /data/data/<package>/files/
+- iOS: Documents/ directory
+- Uses existing conditional export pattern
+
+### Breakpoint Behavior
+
+| Width | Layout | Toolbar | Menu | Panels |
+|-------|--------|---------|------|--------|
+| <600px | Mobile | Bottom | Drawer | Modal sheets |
+| 600-1024px | Tablet | Top | Drawer | Inline |
+| ≥1024px | Desktop | Top | Inline | Inline |

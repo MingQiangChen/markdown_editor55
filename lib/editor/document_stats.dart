@@ -1,3 +1,4 @@
+﻿import 'dart:async';
 import 'package:flutter/material.dart';
 
 enum ViewMode { editorOnly, split, previewOnly }
@@ -60,18 +61,31 @@ class StatusBar extends StatefulWidget {
 class _StatusBarState extends State<StatusBar> {
   int _line = 1;
   int _column = 1;
+  Timer? _cursorTimer;
 
   @override
   void initState() {
     super.initState();
-    widget.controller.addListener(_updateCursorPosition);
+    widget.controller.addListener(_onCursorChange);
     _updateCursorPosition();
   }
 
   @override
   void dispose() {
-    widget.controller.removeListener(_updateCursorPosition);
+    _cursorTimer?.cancel();
+    widget.controller.removeListener(_onCursorChange);
     super.dispose();
+  }
+
+  void _onCursorChange() {
+    // Debounce cursor position updates to avoid expensive line counting
+    // on every cursor movement during rapid typing or selection dragging.
+    _cursorTimer?.cancel();
+    _cursorTimer = Timer(const Duration(milliseconds: 50), () {
+      if (mounted) {
+        _updateCursorPosition();
+      }
+    });
   }
 
   void _updateCursorPosition() {
@@ -89,14 +103,31 @@ class _StatusBarState extends State<StatusBar> {
     }
 
     final cursorPos = selection.start;
+    
+    // Optimized line counting: find the last newline before cursor position
+    // and count newlines in the prefix.
     var line = 1;
     var lastNewline = -1;
-    for (var i = 0; i < cursorPos; i++) {
+    
+    // Use a chunked approach for better performance on large texts.
+    // Scan backwards from cursor to find the start of the current line.
+    var searchPos = cursorPos - 1;
+    while (searchPos >= 0) {
+      if (text.codeUnitAt(searchPos) == 0x0A) {
+        lastNewline = searchPos;
+        break;
+      }
+      searchPos--;
+    }
+    
+    // Count lines from start to the last newline.
+    for (var i = 0; i < lastNewline; i++) {
       if (text.codeUnitAt(i) == 0x0A) {
         line++;
-        lastNewline = i;
       }
     }
+    if (lastNewline >= 0) line++;
+    
     final column = cursorPos - lastNewline;
 
     if (_line != line || _column != column) {
@@ -110,9 +141,9 @@ class _StatusBarState extends State<StatusBar> {
   @override
   Widget build(BuildContext context) {
     final viewModeText = switch (widget.viewMode) {
-      ViewMode.editorOnly => '\u4ec5\u7f16\u8f91',
-      ViewMode.split => '\u7f16\u8f91 + \u9884\u89c8',
-      ViewMode.previewOnly => '\u4ec5\u9884\u89c8',
+      ViewMode.editorOnly => '仅编辑',
+      ViewMode.split => '编辑 + 预览',
+      ViewMode.previewOnly => '仅预览',
     };
 
     return Material(
@@ -130,14 +161,14 @@ class _StatusBarState extends State<StatusBar> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(width: 12),
-                Text('\u00b7'),
+                Text('·'),
                 const SizedBox(width: 12),
               ],
-              Text('$_line \u884c, $_column \u5217'),
+              Text('$_line 行, $_column 列'),
               const SizedBox(width: 16),
-              Text('${widget.stats.words} \u8bcd'),
+              Text('${widget.stats.words} 词'),
               const SizedBox(width: 16),
-              Text('${widget.stats.characters} \u5b57\u7b26'),
+              Text('${widget.stats.characters} 字符'),
               const SizedBox(width: 16),
               Expanded(
                 child: Row(
@@ -159,11 +190,11 @@ class _StatusBarState extends State<StatusBar> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    const Text('\u00b7'),
+                    const Text('·'),
                     const SizedBox(width: 12),
                     Flexible(
                       child: Text(
-                        widget.wordWrap ? '\u81ea\u52a8\u6362\u884c' : '\u4e0d\u6362\u884c',
+                        widget.wordWrap ? '自动换行' : '不换行',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),

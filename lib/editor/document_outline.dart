@@ -1,3 +1,4 @@
+﻿import 'dart:async';
 import 'package:flutter/material.dart';
 
 class OutlineItem {
@@ -14,6 +15,10 @@ class OutlineItem {
 
 final _headingRegex = RegExp(r'^(#{1,6})\s+(.+)$');
 
+/// A document outline panel that parses headings from the document text.
+///
+/// For large documents, outline parsing is debounced to avoid blocking the
+/// UI during rapid typing.
 class DocumentOutline extends StatefulWidget {
   const DocumentOutline({
     super.key,
@@ -31,6 +36,38 @@ class DocumentOutline extends StatefulWidget {
 class _DocumentOutlineState extends State<DocumentOutline> {
   List<OutlineItem>? _cachedOutline;
   String? _cachedText;
+  Timer? _debounceTimer;
+
+  static const Duration _normalDebounce = Duration(milliseconds: 300);
+  static const Duration _largeDocDebounce = Duration(milliseconds: 800);
+  static const int _largeDocThreshold = 50000;
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(DocumentOutline oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text) {
+      _scheduleParse();
+    }
+  }
+
+  void _scheduleParse() {
+    _debounceTimer?.cancel();
+    final isLargeDoc = widget.text.length > _largeDocThreshold;
+    final delay = isLargeDoc ? _largeDocDebounce : _normalDebounce;
+    _debounceTimer = Timer(delay, () {
+      if (mounted) {
+        setState(() {
+          _cachedText = null; // Force re-parse
+        });
+      }
+    });
+  }
 
   List<OutlineItem> _parseOutline() {
     if (_cachedText == widget.text && _cachedOutline != null) {
@@ -38,9 +75,16 @@ class _DocumentOutlineState extends State<DocumentOutline> {
     }
     final items = <OutlineItem>[];
     final lines = widget.text.split('\n');
+    var inCodeBlock = false;
 
     for (int i = 0; i < lines.length; i++) {
       final line = lines[i];
+      if (line.trimLeft().startsWith('```')) {
+        inCodeBlock = !inCodeBlock;
+        continue;
+      }
+      if (inCodeBlock) continue;
+
       final match = _headingRegex.firstMatch(line);
       if (match != null) {
         final level = match.group(1)!.length;
@@ -73,7 +117,7 @@ class _DocumentOutlineState extends State<DocumentOutline> {
           Padding(
             padding: const EdgeInsets.all(12),
             child: Text(
-              '\u6587\u6863\u5927\u7eb2',
+              '文档大纲',
               style: theme.textTheme.titleSmall,
             ),
           ),
@@ -85,7 +129,7 @@ class _DocumentOutlineState extends State<DocumentOutline> {
                       child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: Text(
-                          '\u6682\u65e0\u6807\u9898',
+                          '暂无标题',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),

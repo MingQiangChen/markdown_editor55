@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'markdown_editor_highlighter.dart';
@@ -9,8 +9,10 @@ import 'markdown_editor_highlighter.dart';
 /// highlighted [Text.rich] widget. Both share the same scroll controller and
 /// text metrics so the highlighting aligns with the editable text.
 ///
-/// For large documents (> [_largeFileLineThreshold] lines), syntax highlighting
-/// is automatically disabled to maintain smooth typing performance.
+/// Performance tiers:
+/// - < 3000 lines: full syntax highlighting with debounce
+/// - 3000-15000 lines: line-level cached highlighting (only re-highlight changed lines)
+/// - > 15000 lines: highlighting disabled for smooth typing
 class HighlightedMarkdownEditor extends StatefulWidget {
   const HighlightedMarkdownEditor({
     super.key,
@@ -33,9 +35,14 @@ class HighlightedMarkdownEditor extends StatefulWidget {
 class _HighlightedMarkdownEditorState extends State<HighlightedMarkdownEditor> {
   final ScrollController _scrollController = ScrollController();
   String _text = '';
+  List<String> _lines = const [];
   TextSpan? _cachedHighlight;
   Timer? _highlightTimer;
-  bool _isLargeFile = false;
+
+  /// Line-level cache for large-file mode.
+  List<TextSpan?> _lineCache = const [];
+  /// Tracks code-block state at each line boundary (true = inside code block).
+  List<bool> _codeBlockState = const [];
 
   static const EdgeInsets _contentPadding = EdgeInsets.all(18);
   static const TextStyle _defaultTextStyle = TextStyle(
@@ -45,8 +52,17 @@ class _HighlightedMarkdownEditorState extends State<HighlightedMarkdownEditor> {
   );
 
   static const Duration _highlightDebounce = Duration(milliseconds: 150);
-  static const Duration _largeFileHighlightDebounce = Duration(milliseconds: 500);
-  static const int _largeFileLineThreshold = 5000;
+  static const Duration _largeFileHighlightDebounce = Duration(milliseconds: 400);
+  static const int _lineCacheThreshold = 3000;
+  static const int _noHighlightThreshold = 15000;
+
+  /// Performance tier for the current document size.
+  _PerformanceTier get _tier {
+    final lineCount = _lines.length;
+    if (lineCount >= _noHighlightThreshold) return _PerformanceTier.none;
+    if (lineCount >= _lineCacheThreshold) return _PerformanceTier.lineCache;
+    return _PerformanceTier.full;
+  }
 
   TextStyle get _baseTextStyle {
     return widget.textStyle ?? _defaultTextStyle;
@@ -56,7 +72,7 @@ class _HighlightedMarkdownEditorState extends State<HighlightedMarkdownEditor> {
   void initState() {
     super.initState();
     _text = widget.controller.text;
-    _isLargeFile = _countLines(_text) >= _largeFileLineThreshold;
+    _lines = _text.split('\n');
     widget.controller.addListener(_onTextChanged);
   }
 
@@ -68,62 +84,168 @@ class _HighlightedMarkdownEditorState extends State<HighlightedMarkdownEditor> {
     super.dispose();
   }
 
-  static int _countLines(String text) {
-    var count = 1;
-    for (var i = 0; i < text.length; i++) {
-      if (text.codeUnitAt(i) == 0x0A) count++;
-    }
-    return count;
-  }
-
   void _onTextChanged() {
     final newText = widget.controller.text;
-    final wasLargeFile = _isLargeFile;
-    _isLargeFile = _countLines(newText) >= _largeFileLineThreshold;
+    final oldLines = _lines;
 
     setState(() {
       _text = newText;
+      _lines = newText.split('\n');
     });
 
-    if (_isLargeFile && !wasLargeFile) {
-      setState(() {
-        _cachedHighlight = null;
-      });
+    final tier = _tier;
+
+    if (tier == _PerformanceTier.none) {
+      _highlightTimer?.cancel();
+      _cachedHighlight = null;
+      _lineCache = const [];
+      _codeBlockState = const [];
+      return;
+    }
+
+    if (tier == _PerformanceTier.lineCache) {
+      _invalidateLineCache(oldLines);
     }
 
     _scheduleHighlight();
   }
 
-  void _scheduleHighlight() {
-    _highlightTimer?.cancel();
+  /// Determine which lines changed and invalidate them in the cache.
+  void _invalidateLineCache(List<String> oldLines) {
+    final newLines = _lines;
 
-    if (_isLargeFile) {
-      setState(() {
-        _cachedHighlight = null;
-      });
+    // If the cache is empty or line count changed drastically, rebuild fully.
+    if (_lineCache.isEmpty ||
+        (newLines.length - oldLines.length).abs() > 50) {
+      _lineCache = List<TextSpan?>.filled(newLines.length, null);
+      _codeBlockState = List<bool>.filled(newLines.length + 1, false);
       return;
     }
 
-    final debounce = _isLargeFile ? _largeFileHighlightDebounce : _highlightDebounce;
+    // Find the first and last changed lines using common prefix/suffix.
+    var firstChanged = 0;
+    final minLen = oldLines.length < newLines.length
+        ? oldLines.length
+        : newLines.length;
+    while (firstChanged < minLen &&
+        oldLines[firstChanged] == newLines[firstChanged]) {
+      firstChanged++;
+    }
+
+    var oldLast = oldLines.length - 1;
+    var newLast = newLines.length - 1;
+    while (oldLast > firstChanged &&
+        newLast > firstChanged &&
+        oldLines[oldLast] == newLines[newLast]) {
+      oldLast--;
+      newLast--;
+    }
+
+    // Invalidate from firstChanged to end of new lines (code block state
+    // changes can cascade).
+    final invalidateFrom = firstChanged;
+    if (_lineCache.length != newLines.length) {
+      _lineCache = List<TextSpan?>.filled(newLines.length, null);
+      _codeBlockState = List<bool>.filled(newLines.length + 1, false);
+    } else {
+      for (var i = invalidateFrom; i < newLines.length; i++) {
+        _lineCache[i] = null;
+      }
+    }
+  }
+
+  void _scheduleHighlight() {
+    _highlightTimer?.cancel();
+
+    final tier = _tier;
+    if (tier == _PerformanceTier.none) return;
+
+    final debounce = tier == _PerformanceTier.lineCache
+        ? _largeFileHighlightDebounce
+        : _highlightDebounce;
+
     _highlightTimer = Timer(debounce, () {
       if (!mounted) return;
       final theme = Theme.of(context);
       final colorScheme = theme.colorScheme;
       final baseStyle = _baseTextStyle.copyWith(color: colorScheme.onSurface);
-      final highlight = highlightMarkdown(_text, baseStyle, colorScheme);
-      if (!mounted) return;
-      setState(() {
-        _cachedHighlight = highlight;
-      });
+
+      if (tier == _PerformanceTier.lineCache) {
+        _highlightLinesIncremental(baseStyle, colorScheme);
+      } else {
+        final highlight = highlightMarkdown(_text, baseStyle, colorScheme);
+        if (!mounted) return;
+        setState(() {
+          _cachedHighlight = highlight;
+        });
+      }
+    });
+  }
+
+  /// Incrementally highlight only invalidated lines.
+  void _highlightLinesIncremental(TextStyle baseStyle, ColorScheme colorScheme) {
+    final lines = _lines;
+    final metaColor = colorScheme.onSurface.withValues(alpha: 0.45);
+    final codeColor = colorScheme.tertiary;
+    final codeBackground = colorScheme.surfaceContainerHighest;
+
+    // Rebuild code-block state from scratch up to the first null cache entry.
+    var firstNull = 0;
+    while (firstNull < _lineCache.length && _lineCache[firstNull] != null) {
+      firstNull++;
+    }
+
+    // Recompute code block state from the first invalidated line.
+    var inCodeBlock = firstNull > 0 ? _codeBlockState[firstNull] : false;
+
+    for (var i = firstNull; i < lines.length; i++) {
+      if (_lineCache[i] != null) continue;
+
+      final line = lines[i];
+
+      if (line.trimLeft().startsWith('`')) {
+        inCodeBlock = !inCodeBlock;
+        _lineCache[i] = TextSpan(
+          text: line,
+          style: baseStyle.copyWith(color: metaColor),
+        );
+      } else if (inCodeBlock) {
+        _lineCache[i] = TextSpan(
+          text: line,
+          style: baseStyle.copyWith(
+            color: codeColor,
+            background: Paint()..color = codeBackground.withValues(alpha: 0.3),
+          ),
+        );
+      } else {
+        // Use the full line highlighter for non-code-block lines.
+        _lineCache[i] = highlightSingleLine(line, baseStyle, colorScheme);
+      }
+
+      // Update code block state after this line.
+      if (i + 1 < _codeBlockState.length) {
+        _codeBlockState[i + 1] = inCodeBlock;
+      }
+    }
+
+    // Build the combined TextSpan.
+    final rootChildren = <TextSpan>[];
+    for (var i = 0; i < lines.length; i++) {
+      rootChildren.add(_lineCache[i] ?? TextSpan(text: lines[i], style: baseStyle));
+      if (i < lines.length - 1) {
+        rootChildren.add(TextSpan(text: '\n', style: baseStyle));
+      }
+    }
+
+    setState(() {
+      _cachedHighlight = TextSpan(style: baseStyle, children: rootChildren);
     });
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_isLargeFile) {
-      _scheduleHighlight();
-    }
+    _scheduleHighlight();
   }
 
   @override
@@ -131,9 +253,11 @@ class _HighlightedMarkdownEditorState extends State<HighlightedMarkdownEditor> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final baseStyle = _baseTextStyle.copyWith(color: colorScheme.onSurface);
+    final tier = _tier;
+    final useHighlighting = tier != _PerformanceTier.none;
 
     final TextSpan highlighted;
-    if (_isLargeFile) {
+    if (!useHighlighting) {
       highlighted = TextSpan(text: _text, style: baseStyle);
     } else {
       highlighted =
@@ -145,7 +269,7 @@ class _HighlightedMarkdownEditorState extends State<HighlightedMarkdownEditor> {
         controller: _scrollController,
         child: Stack(
           children: [
-            if (!_isLargeFile)
+            if (useHighlighting)
               IgnorePointer(
                 child: Padding(
                   padding: _contentPadding,
@@ -160,13 +284,13 @@ class _HighlightedMarkdownEditorState extends State<HighlightedMarkdownEditor> {
               minLines: null,
               textAlignVertical: TextAlignVertical.top,
               keyboardType: TextInputType.multiline,
-              style: _isLargeFile
-                  ? baseStyle
-                  : _baseTextStyle.copyWith(color: Colors.transparent),
+              style: useHighlighting
+                  ? _baseTextStyle.copyWith(color: Colors.transparent)
+                  : baseStyle,
               cursorColor: colorScheme.onSurface,
               decoration: InputDecoration(
                 border: InputBorder.none,
-                contentPadding: _isLargeFile ? _contentPadding : _contentPadding,
+                contentPadding: _contentPadding,
                 hintText: 'Write Markdown...',
                 hintStyle: _baseTextStyle.copyWith(
                   color: colorScheme.onSurface.withValues(alpha: 0.35),
@@ -185,7 +309,7 @@ class _HighlightedMarkdownEditorState extends State<HighlightedMarkdownEditor> {
             width: 3000,
             child: Stack(
               children: [
-                if (!_isLargeFile)
+                if (useHighlighting)
                   IgnorePointer(
                     child: Padding(
                       padding: _contentPadding,
@@ -200,9 +324,9 @@ class _HighlightedMarkdownEditorState extends State<HighlightedMarkdownEditor> {
                   minLines: null,
                   textAlignVertical: TextAlignVertical.top,
                   keyboardType: TextInputType.multiline,
-                  style: _isLargeFile
-                      ? baseStyle
-                      : _baseTextStyle.copyWith(color: Colors.transparent),
+                  style: useHighlighting
+                      ? _baseTextStyle.copyWith(color: Colors.transparent)
+                      : baseStyle,
                   cursorColor: colorScheme.onSurface,
                   decoration: InputDecoration(
                     border: InputBorder.none,
@@ -221,3 +345,5 @@ class _HighlightedMarkdownEditorState extends State<HighlightedMarkdownEditor> {
     }
   }
 }
+
+enum _PerformanceTier { full, lineCache, none }

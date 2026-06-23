@@ -1,6 +1,6 @@
-﻿# QLaw Markdown
+# QLaw Markdown
 
-A Flutter Markdown editor for desktop and web.
+A Flutter Markdown editor for desktop, web, and mobile.
 
 ## Features
 

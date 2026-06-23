@@ -350,3 +350,55 @@ TextSpan _highlightInline(
   flush();
   return TextSpan(style: baseStyle, children: spans);
 }
+
+/// Highlight a single line of Markdown (used by the line-cached highlighter).
+///
+/// This does NOT handle code-block state; the caller is responsible for
+/// detecting code fences and passing pre-styled spans for code-block lines.
+TextSpan highlightSingleLine(
+  String line,
+  TextStyle baseStyle,
+  ColorScheme colorScheme,
+) {
+  final headingColor = colorScheme.primary;
+  final metaColor = colorScheme.onSurface.withValues(alpha: 0.45);
+  final quoteColor = colorScheme.secondary;
+  final listMarkerColor = colorScheme.primary;
+  final hrColor = colorScheme.onSurface.withValues(alpha: 0.35);
+
+  if (line.trimLeft().startsWith('`')) {
+    return TextSpan(text: line, style: baseStyle.copyWith(color: metaColor));
+  }
+
+  // Horizontal rule
+  if (_isSingleLineHR(line)) {
+    return TextSpan(text: line, style: baseStyle.copyWith(color: hrColor));
+  }
+
+  // Heading
+  if (line.startsWith('#')) {
+    return _highlightHeading(line, baseStyle, headingColor, metaColor, colorScheme);
+  }
+
+  // Blockquote
+  if (line.startsWith('>')) {
+    return _highlightBlockquote(line, baseStyle, quoteColor, colorScheme);
+  }
+
+  // List item
+  if (_listItemRegex.hasMatch(line)) {
+    return _highlightListItem(line, baseStyle, listMarkerColor, colorScheme);
+  }
+
+  // Plain line with inline formatting
+  return _highlightInline(line, baseStyle, colorScheme);
+}
+
+bool _isSingleLineHR(String line) {
+  final trimmed = line.trim();
+  if (trimmed.length < 3) return false;
+  final noSpaces = trimmed.replaceAll(' ', '');
+  return _hrDashRegex.hasMatch(noSpaces) ||
+      _hrStarRegex.hasMatch(noSpaces) ||
+      _hrUnderRegex.hasMatch(noSpaces);
+}

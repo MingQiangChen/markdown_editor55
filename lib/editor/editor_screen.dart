@@ -1,5 +1,5 @@
-﻿import 'dart:async';
-import 'package:desktop_drop/desktop_drop.dart';
+import 'dart:async';
+import '../utils/drop_target.dart';
 
 import 'package:flutter/material.dart';
 
@@ -26,6 +26,8 @@ import '../image_service/image_service.dart';
 import 'insert_image_dialog.dart';
 import '../file_tree/file_tree_panel.dart';
 import 'package:file_picker/file_picker.dart';
+import '../utils/responsive_layout.dart';
+import 'mobile_editor_layout.dart';
 import 'dart:io';
 import '../templates/document_templates.dart';
 import '../cloud_sync/cloud_sync.dart';
@@ -815,6 +817,40 @@ class _EditorScreenState extends State<EditorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final layout = ResponsiveLayout.fromContext(context);
+
+    if (layout.isMobile) {
+      return MobileEditorLayout(
+        activeTab: _activeTab,
+        viewMode: _viewMode,
+        wordWrap: _wordWrap,
+        saveStatus: _saveStatus,
+        showFindReplace: _showFindReplace,
+        enableSpellCheck: _enableSpellCheck,
+        settings: _settings,
+        syncService: _syncService,
+        onCycleViewMode: _cycleViewMode,
+        onToggleFindReplace: _toggleFindReplace,
+        onWrapSelection: _wrapSelection,
+        onInsertBlock: _insertBlock,
+        onShowTemplateDialog: _showTemplateDialog,
+        onOpenFile: _openFile,
+        onSaveFile: _saveFile,
+        onExportHtml: _exportHtml,
+        onExportPdf: _exportPdf,
+        onToggleSettings: _toggleSettings,
+        onToggleSyncSettings: _toggleSyncSettings,
+        onSyncCurrentFile: _syncCurrentFile,
+        onShowThemePicker: _showThemePicker,
+        onToggleSpellCheck: _toggleSpellCheck,
+        onShowInsertImageDialog: _showInsertImageDialog,
+        onJumpToLine: _jumpToLine,
+        onReplaceSpellWord: _replaceSpellWord,
+        onOpenFileFromTree: _openFileFromTree,
+        onCloseFindReplace: () => setState(() => _showFindReplace = false),
+      );
+    }
+
     return EditorShortcuts(
       onBold: () => _wrapSelection('**', '**'),
       onItalic: () => _wrapSelection('*', '*'),
@@ -831,7 +867,7 @@ class _EditorScreenState extends State<EditorScreen> {
       onPreviousTab: _previousTab,
       onCloseTab: _closeActiveTab,
       child: Scaffold(
-        body: DropTarget(
+        body: PlatformDropTarget(
           onDragDone: (details) async {
             if (details.files.isNotEmpty) {
               for (final droppedFile in details.files) {

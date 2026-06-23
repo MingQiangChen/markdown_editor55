@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 
@@ -7,8 +7,10 @@ import 'markdown_syntax_highlighter.dart';
 
 /// A Markdown preview widget with debounced rendering.
 ///
-/// For large documents, rendering is debounced to avoid blocking the UI
-/// during rapid typing. The debounce delay scales with document size.
+/// Rendering delay scales with document size to keep the UI responsive:
+/// - < 10 KB: 200 ms
+/// - 10-100 KB: 500 ms
+/// - > 100 KB: 1000 ms
 class MarkdownPreview extends StatefulWidget {
   const MarkdownPreview({super.key, required this.data});
 
@@ -22,9 +24,9 @@ class _MarkdownPreviewState extends State<MarkdownPreview> {
   String _renderedData = '';
   Timer? _debounceTimer;
 
-  static const int _largeDocThreshold = 10000;
-  static const Duration _normalDebounce = Duration(milliseconds: 200);
-  static const Duration _largeDocDebounce = Duration(milliseconds: 500);
+  static const Duration _smallDocDebounce = Duration(milliseconds: 200);
+  static const Duration _mediumDocDebounce = Duration(milliseconds: 500);
+  static const Duration _largeDocDebounce = Duration(milliseconds: 1000);
 
   @override
   void initState() {
@@ -46,11 +48,16 @@ class _MarkdownPreviewState extends State<MarkdownPreview> {
     super.dispose();
   }
 
+  Duration _debounceForSize() {
+    final len = widget.data.length;
+    if (len > 100000) return _largeDocDebounce;
+    if (len > 10000) return _mediumDocDebounce;
+    return _smallDocDebounce;
+  }
+
   void _scheduleRender() {
     _debounceTimer?.cancel();
-    final isLargeDoc = widget.data.length > _largeDocThreshold;
-    final delay = isLargeDoc ? _largeDocDebounce : _normalDebounce;
-    _debounceTimer = Timer(delay, () {
+    _debounceTimer = Timer(_debounceForSize(), () {
       if (mounted) {
         setState(() {
           _renderedData = widget.data;
